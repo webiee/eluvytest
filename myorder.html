@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript">
+            app.initialize();
+        </script>
+        <script type="text/javascript" langauge="javascript">
+            var app_curr_code = config.data[0].app_currency;
+            var app_curr_symbol = config.data[0].app_curr_symbol;
+            var order_check_arr = new Array();
+            var loading = "true";
+            var _top = $(window).scrollTop();
+            var _direction;
+            var page = 1;
+            var product_count = 1;
+            var allorderlistdata = 0;
+            var total_orders = 0;
+            var current_orders = 0;
+            var pagescrolldata = 0;
+
+            function onLoad() {
+                checkLoginStatus();
+                verify_session();
+                displayOrder(page);
+                $("#mofluid_home_a").html(locale.message.button["home"]);
+                $("#mofluid_myaccount_a").html(locale.message.button["my_account"]);
+                $("#mofluid_editprofile_a").html(locale.message.button["edit_profile"]);
+                $("#mofluid_myorders_a").html(locale.message.button["my_orders"]);
+                $("#mofluid_signout_a").html(locale.message.button["sign_out"]);
+                $("#mofluid_signin_a").html(locale.message.button["sign_in"]);
+                $("#searchFilter").attr("placeholder", locale.message.text["search"]);
+                try {
+                    var MYSTORE = JSON.parse(localStorage[config.data[0].storage_key + "_STORE"]);
+                    document.title = MYSTORE["store"]["name"];
+                    $("#storelabel").html(MYSTORE["store"]["name"]);
+                } catch (err) {}
+                getFooter();
+            }
+
+
+            /*
+             *Function to implement pagination
+             *@param
+             *return
+             */
+
+            $(document).scroll(function() {
+                var _cur_top = $(window).scrollTop();
+                if (_top < _cur_top) {
+                    _direction = 'down';
+                    if ($(window).scrollTop() >= $(document).height() - $(window).height() - 100) {
+                        //End of page, load next content here
+                        if (loading) {
+                            loadNextPage();
+                        }
+                    }
+                } else {
+                    _direction = 'up';
+                }
+                _top = _cur_top;
+                console.log(_direction);
+            });
+
+            //Load content for next page
+            function loadNextPage() {
+                console.error("current_orders : " + current_orders);
+                console.error("total_orders : " + total_orders);
+
+                if (current_orders < total_orders && pagescrolldata == 0) {
+                    displayOrder(++page);
+                }
+            }
+
+            /*
+             *Function to capitalise first letter
+             *@param
+             *@return
+             */
+
+            function capitaliseFirstLetter(string) {
+                try {
+                    return string.charAt(0).toUpperCase() + string.slice(1);
+                } catch (err) {
+                    return string;
+                }
+            }
+
+            function isInArray(value, array) {
+                return array.indexOf(value) > -1;
+            }
+
+            /*
+             *Function to display all orders
+             *@param
+             *return
+             */
+            function displayOrder(page) {
+                $("#myorder_content").hide();
+                $("#myorder_msg").show();
+                loading = "false";
+                var BASE_URL = config.data[0].baseurl;
+                var STORE = config.data[0].storeid;
+                var Session = JSON.parse(localStorage[config.data[0].storage_key + '_Session']);
+                var app_curr_code = config.data[0].app_currency;
+                var customerid = Session["customer_id"];
+                var coupon_status = "";
+                var discount_amount = "";
+                var coupon_code = "";
+                var shipmyid = "";
+                $(".ui-loader").show();
+                //---Fetch Store Details from Mofluid Magento Web Service
+                console.log("" + BASE_URL + "?callback=?" + "&store=" + STORE + "&service=myorders&customerid=" + customerid + "&currentpage=" + page + "&pagesize=3" + "&currency=" + app_curr_code);
+                var myorder_webservice = BASE_URL + "?callback=?" + "&store=" + STORE + "&service=myorders&customerid=" + customerid + "&currentpage=" + page + "&pagesize=10" + "&currency=" + app_curr_code;
+                $.ajax({
+                    url: myorder_webservice,
+                    type: "get",
+                    dataType: "jsonp",
+                    beforeSend: function() {
+                        console.log("Before Shipping Webservice");
+                    },
+                    error: function() {
+                        if (config.data[0].platform == 'ios' || config.data[0].platform == 'Android') {
+                            navigator.notification.alert(locale.message.alert["try_again"], function() {}, config.data[0].app_name, locale.message.button["close"]);
+                        } else {
+                            alert(locale.message.alert["try_again"])
+                        }
+                        console.log("Error  on Webservice");
+                    },
+                    complete: function() {
+                        console.log("Complete Webservice");
+                    },
+                    success: function(response) {
+                        loading = "true";
+                        total_orders = response.total;
+                        allorderlistdata = response.data;
+                        console.log(allorderlistdata);
+                        if (allorderlistdata == null) {
+                            allorderlistdata = "";
+                        }
+                        alldatalength = allorderlistdata.length;
+                        var allorderhtml = '';
+                        var i = 0;
+                        if (response.total) {
+                            if (current_orders < total_orders) {
+                                for (i = 0; i < alldatalength; i++) {
+                                    current_orders++;
+                                    allorderhtml += '<div class="mainorderdiv" id="mainorderdiv">\
+                                            <div class="mainorderiddiv"><span id="orderdate">' + allorderlistdata[i].order_date + '</span><span id="ordeid">( OD' + allorderlistdata[i].order_id + ' )</span></div>\
+                                            <div class="mainproductcoldiv" id="mainproductcoldiv">';
+                                    var productidslength = allorderlistdata[i].product.id.length;
+                                    var j = 0;
+                                    for (j = 0; j < productidslength; j++) {
+                                        allorderhtml += '<div class="mainproductcolsubdiv" id="mainproductcolsubdiv">\
+                                                        <div class="mainproductcolimgdiv" id="mainproductcolimgdiv">\
+                                                    <img src="' + allorderlistdata[i].product.image[j] + '" onerror="bad_image(this);"/>\
+                                                </div>\
+                                                <div class="mainproductcoldesdiv" id="mainproductcoldesdiv">\
+                                                    <div class="mainproductcoldesname" id="mainproductcoldesname">' + allorderlistdata[i].product.name[j] + '</div>\
+                                                    <div class="mainproductcoldespric mypricebold" id="mainproductcoldespeice"><span>' + app_curr_symbol + '</span>' + parseFloat(allorderlistdata[i].product.unitprice[j]).toFixed(2) + '</div>\
+                                                </div>\
+                                             </div>';
+                                    }
+                                    allorderhtml += '<div class="mainproductcolstausview" id="mainproductcolstausview">\
+                                            <div class="mainproductcolstaus" id="mainproductcolstaus">\
+                                                <span class="mainproductcolstauslab" id="mainproductcolstauslab">' + locale.message.text["status"] + ' : </span>\
+                                                <span class="mainproductcolstausval" id="mainproductcolstausval">' + allorderlistdata[i].status + '</span>\
+                                            </div>\
+                                            <div class="mainproductcolview" id="mainproductcolview">\
+                                                <div class="mainproductcolviewbut" id="mainproductcolviewbut" onclick="productdescription(' + allorderlistdata[i].order_id + ');">' + locale.message.text["view_details"] + '</div>\
+               <div class="mainproductcolviewbut reorder" id="mainproductcolviewbut" onclick="reorderfunction(' + allorderlistdata[i].order_id + ');">' + locale.message.text["reorder"] + '</div>\
+                                            </div>\
+                                         </div>\
+                                    </div></div>';
+                                }
+                            }
+                        } else {
+                            allorderhtml = locale.message.text["you_have_no_orders"];
+                        }
+                        //alert(allorderhtml);
+                        $("#myorder_msg").append(allorderhtml);
+                        $("#myorder_msg").trigger("create");
+                        $(".ui-loader").hide();
+
+                    }
+                });
+
+            }
+
+            function reorderfunction(orderid) {
+                $("#myorder_msg").hide();
+                $(".ui-loader").show();
+                localStorage[config.data[0].storage_key + '_pNames'] = "";
+                localStorage[config.data[0].storage_key + '_pPrices'] = "";
+                localStorage[config.data[0].storage_key + '_pImages'] = "";
+                localStorage[config.data[0].storage_key + '_pSizes'] = "";
+                localStorage[config.data[0].storage_key + '_pColor'] = "";
+                localStorage[config.data[0].storage_key + '_pQuantities'] = "";
+                localStorage[config.data[0].storage_key + '_pTitles'] = "";
+                localStorage[config.data[0].storage_key + '_pShippCharge'] = "";
+                localStorage[config.data[0].storage_key + '_pIds'] = "";
+                localStorage[config.data[0].storage_key + '_pcustom_options'] = "";
+                localStorage[config.data[0].storage_key + '_subtotal'] = "";
+                localStorage[config.data[0].storage_key + '_totalAmount'] = "";
+                localStorage[config.data[0].storage_key + '_TotalShipp'] = "";
+                localStorage[config.data[0].storage_key+'_pnew_pro_data'] = "";
+                
+               /* var new_pro_data = {};
+                new_pro_data["pro_type"] = pType;
+                new_pro_data["parent_id"] = global_results_configurable.parent.id;
+                localStorage[config.data[0].storage_key+'_pnew_pro_data']*/
+                
+                
+                
+                alldatalength = allorderlistdata.length;
+                var rpids = [];
+                var new_data = [];
+                var rpNames = [];
+                var rpPrices = [];
+                var rpImages = [];
+                var rpSizes = [];
+                var rpColor = [];
+                var rpQuantities = [];
+                var rpTitles = [];
+                var rpShippCharge = [];
+                var rpcustom_options = [];
+                var rcartsubtotal = 0;
+                var rshipchargetotal = 0;
+                var detailedorderid = orderid;
+                var BASE_URL = config.data[0].baseurl;
+                var STORE = config.data[0].storeid;
+                var app_curr_code = config.data[0].app_currency;
+                var orderdetailhtml = '';
+                var i = 0;
+                if (alldatalength) {
+                    for (i = 0; i < alldatalength; i++) {
+
+                        if (allorderlistdata[i].order_id == detailedorderid) {
+
+                            var rproductids = allorderlistdata[i].product.id;
+                            var rproductimages = allorderlistdata[i].product.image;
+                            var rproductquantity = allorderlistdata[i].product.quantity;
+                            var rproductidslen = rproductids.length;
+
+                            var pidscol = [];
+                            var rpidsarr = new Object();
+                            for (j = 0; j < rproductidslen; j++) {
+                                pidscol[j] = allorderlistdata[i].product.id[j];
+                            }
+                            rpidsarr["id"] = pidscol;
+                            var rpidsarrcol = JSON.stringify(rpidsarr);
+
+                            console.log(BASE_URL + "?callback=?" + "&store=" + STORE + "&service=mofluid_reorder&pid=" + rpidsarrcol + "&currency=" + app_curr_code+"&orderid="+orderid);
+                            if (rproductidslen) {
+                                var reorder_webservice = BASE_URL + "?callback=?" + "&store=" + STORE + "&service=mofluid_reorder&pid=" + rpidsarrcol + "&currency=" + app_curr_code+"&orderid="+orderid;
+                                $.ajax({
+                                    url: reorder_webservice,
+                                    type: "get",
+                                    dataType: "jsonp",
+                                    beforeSend: function() {
+                                        console.log("Before reorder Webservice");
+                                    },
+                                    error: function() {
+                                        if (config.data[0].platform == 'ios' || config.data[0].platform == 'android') {
+                                            navigator.notification.alert(locale.message.alert["try_again"], function() {}, config.data[0].app_name, locale.message.button["close"]);
+                                        } else {
+                                            alert(locale.message.alert["try_again"])
+                                        }
+                                        console.log("Error  on Webservice");
+                                    },
+                                    complete: function() {
+                                        console.log("Complete Webservice");
+                                    },
+                                    success: function(results) {
+
+                                        var j = 0;
+                                        var flag = 0;
+                                        for (j = 0; j < rproductidslen; j++) {
+                                            var rproductdata = results[j];
+                                            var rproductquantityin = rproductdata.quantity["available"];
+                                            var rproductstatus = rproductdata.status;
+                                            if (rproductquantityin > 0 && rproductstatus == 1) {
+                                                //alert("order qu = "+rproductquantity[j]);
+                                                //alert(rproductquantityin);
+                                                if (parseInt(rproductquantity[j]) <= parseInt(rproductquantityin)) {
+                                                    rpids[flag] = rproductdata.id;
+                                                    rpNames[flag] = rproductdata.sku;
+                                                    if (rproductdata.sprice > 0)
+                                                        rpPrices[flag] = rproductdata.sprice;
+                                                    else
+                                                        rpPrices[flag] = rproductdata.price;
+                                                    rpQuantities[flag] = parseInt(rproductquantity[j]);
+                                                    //alert("price of prod = "+parseFloat(rproductdata.price));
+                                                    rcartsubtotal += parseFloat(rproductdata.price).toFixed(2) * parseFloat(rproductquantity[j]);
+                                                    //alert("price of cart = "+parseFloat(rcartsubtotal));
+                                                    rpImages[flag] = rproductimages[j];
+                                                    rpSizes[flag] = "N/A";
+                                                    rpColor[flag] = "N/A";
+                                                    rpTitles[flag] = rproductdata.name;
+                                       
+                                       
+                                                   var new_pro_data = {};
+                                                   new_pro_data["pro_type"] = rproductdata.type;
+                                                   new_pro_data["parent_id"] = rproductdata.id;
+                                                   new_data[flag] = new_pro_data;
+                            
+                                       
+                                       
+                                                    rpShippCharge[flag] = rproductdata.shipping;
+                                                    //alert("price of prod ship = "+parseFloat(rpShippCharge[flag]));
+                                                    rshipchargetotal += parseFloat(rproductdata.shipping).toFixed(2);
+                                                    //alert("price of prod total = "+parseFloat(rshipchargetotal));
+                                                    if(rproductdata.has_custom_option)
+                                                        rpcustom_options[flag] =  rproductdata.custom_option;
+                                                    else
+                                                     	rpcustom_options[flag] = {};
+                                                    flag++;
+                                                }
+                                            }
+                                        }
+                                        if (flag > 0) {
+                                        
+                                        
+                                            localStorage[config.data[0].storage_key + '_pNames'] = JSON.stringify(rpNames);
+                                            localStorage[config.data[0].storage_key+'_pnew_pro_data'] = JSON.stringify(new_data);
+
+                                            localStorage[config.data[0].storage_key + '_pPrices'] = JSON.stringify(rpPrices);
+                                            localStorage[config.data[0].storage_key + '_pImages'] = JSON.stringify(rpImages);
+                                            localStorage[config.data[0].storage_key + '_pQuantities'] = JSON.stringify(rpQuantities);
+                                            localStorage[config.data[0].storage_key + '_pTitles'] = JSON.stringify(rpTitles);
+                                            localStorage[config.data[0].storage_key + '_pIds'] = JSON.stringify(rpids);
+                                            localStorage[config.data[0].storage_key + '_pcustom_options'] = JSON.stringify(rpcustom_options);
+                                            localStorage[config.data[0].storage_key + '_subtotal'] = rcartsubtotal;
+                                            localStorage[config.data[0].storage_key + '_totalAmount'] = rcartsubtotal;
+                                            localStorage[config.data[0].storage_key + '_TotalShipp'] = rshipchargetotal;
+                                            localStorage[config.data[0].storage_key+'_pShippCharge'] = JSON.stringify(rpShippCharge);
+                                            var dirPath = dirname(location.href);
+                                            var fullPath = dirPath + "/cart.html";
+                                            window.location = fullPath;
+                                            $(".ui-loader").hide();
+                                        } else {
+                                            if (config.data[0].platform == 'ios' || config.data[0].platform == 'android') {
+                                                navigator.notification.alert(locale.message.alert["products_out_of_stock_message"], function() {
+                                                    redirectTopage("myorder.html");
+                                                }, config.data[0].app_name, locale.message.button["close"]);
+                                            } else {
+                                                alert(locale.message.alert["products_out_of_stock_message"]);
+                                                redirectTopage("myorder.html");
+                                            }
+                                            $(".ui-loader").hide();
+                                        }
+                                    }
+                                });
+
+                            }
+                            break;
+                        }
+                    }
+                }
+
+
+            }
+
+
+            function productdescription(orderid) {
+                pagescrolldata = 1;
+                 $("#myorder_msg").html("");
+                // alert(pagescrolldata);
+                console.log(allorderlistdata);
+                $("#myorder_content").show();
+                $("#myorder_msg").hide();
+                $(".ui-loader").show();
+                var detailedorderid = orderid;
+                var BASE_URL = config.data[0].baseurl;
+                var STORE = config.data[0].storeid;
+                var Session = JSON.parse(localStorage[config.data[0].storage_key + '_Session']);
+                var app_curr_code = config.data[0].app_currency;
+                var customerid = Session["customer_id"];
+                var coupon_status = "";
+                var discount_amount = "";
+                var coupon_code = "";
+                var shipmyid = "";
+                $(".ui-loader").show();
+                //---Fetch Store Details from Mofluid Magento Web Service
+
+                alldatalength = allorderlistdata.length;
+                var orderdetailhtml = '';
+                var i = 0;
+                if (alldatalength) {
+                    for (i = 0; i < alldatalength; i++) {
+                        if (allorderlistdata[i].order_id == detailedorderid) {
+                            console.log(allorderlistdata[i]);
+                            var billadd_city = allorderlistdata[i].billing_address.city;
+                            var billadd_company = allorderlistdata[i].billing_address.company;
+                            if (billadd_company == null) {
+                                billadd_company = "";
+                            }
+                            var billadd_contactno = allorderlistdata[i].billing_address.contactno;
+                            var billadd_countryid = allorderlistdata[i].billing_address.countryid;
+                            var billadd_firstname = allorderlistdata[i].billing_address.firstname;
+                            var billadd_lastname = allorderlistdata[i].billing_address.lastname;
+                            var billadd_pincode = allorderlistdata[i].billing_address.pincode;
+                            var billadd_region = allorderlistdata[i].billing_address.region;
+                            if (billadd_region == null) {
+                                billadd_region = "";
+                            }
+                            var billadd_street = allorderlistdata[i].billing_address.street;
+
+                            var shipadd_city = allorderlistdata[i].shipping_address.city;
+                            var shipadd_company = allorderlistdata[i].shipping_address.company;
+                            if (shipadd_company == null) {
+                                shipadd_company = "";
+                            }
+                            var shipadd_contactno = allorderlistdata[i].shipping_address.contactno;
+                            var shipadd_countryid = allorderlistdata[i].shipping_address.countryid;
+                            var shipadd_firstname = allorderlistdata[i].shipping_address.firstname;
+                            var shipadd_lastname = allorderlistdata[i].shipping_address.lastname;
+                            var shipadd_pincode = allorderlistdata[i].shipping_address.pincode;
+                            var shipadd_region = allorderlistdata[i].shipping_address.region;
+                            if (shipadd_region == null) {
+                                shipadd_region = "";
+                            }
+                            var shipadd_street = allorderlistdata[i].shipping_address.street;
+
+                            var bill_add = billadd_firstname + billadd_lastname + billadd_street + billadd_city + billadd_pincode + billadd_region + billadd_countryid + billadd_contactno;
+                            var ship_add = shipadd_firstname + shipadd_lastname + shipadd_street + shipadd_city + shipadd_pincode + shipadd_region + shipadd_countryid + shipadd_contactno;
+                            var compareflag = bill_add.localeCompare(ship_add);
+
+                            orderdetailhtml += '<div class="mainordedetail" id="mainordedetail">\
+                                                    <div class="mainordedetaillabel" id="mainordedetaillabel">' + locale.message.text["items_in_your_order"] + '</div>\
+                                                    <div class="mainordedetaildes" id="mainordedetaildes">';
+                            if (compareflag == 0) {
+                                orderdetailhtml += '<div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["billing__shipping_address"] + '</div>';
+                            } else {
+                                orderdetailhtml += '<div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["billing_address"] + '</div>';
+                            }
+
+                            orderdetailhtml += '<div class="orderdetailvalue" id="orderdetailvalue">\
+                                                            <div class="billnamebold">' + billadd_firstname + ' ' + billadd_lastname + '</div>\
+                                                            <div>' + billadd_street + '</div>\
+                                                            <div>' + billadd_city + ' ' + billadd_pincode + '';
+
+                            if (billadd_region != "") {
+                                orderdetailhtml += ', ' + billadd_region + '';
+                            }
+
+                            orderdetailhtml += ', ' + billadd_countryid + '</div>\
+                                                            <div>Ph ' + billadd_contactno + '</div>\
+                                                        </div>\
+                                                    </div>';
+
+                            if (compareflag != 0) {
+                                orderdetailhtml += '<div class="mainordedetaildes" id="mainordedetaildes">\
+                                                            <div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["shipping_address"] + '</div>\
+                                                            <div class="orderdetailvalue" id="orderdetailvalue">\
+                                                                <div class="billnamebold">' + shipadd_firstname + ' ' + shipadd_lastname + '</div>\
+                                                                <div>' + shipadd_street + '</div>\
+                                                                <div>' + shipadd_city + ' ' + shipadd_pincode + '';
+
+                                if (shipadd_region != "") {
+                                    orderdetailhtml += ', ' + shipadd_region + '';
+                                }
+
+                                orderdetailhtml += '	,' + shipadd_countryid + '</div>\
+                                                                <div>Ph ' + shipadd_contactno + '</div>\
+                                                            </div>\
+                                                        </div>';
+                            }
+                            orderdetailhtml += '<div class="mainordedetaildes" id="mainordedetaildes">\
+                                                        <div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["grand_total"] + '</div>\
+                                                        <div class="orderdetailvalue" id="orderdetailvalue">' + app_curr_symbol + ' ' + parseFloat(allorderlistdata[i].grand_total).toFixed(2) + '</div>\
+                                                    </div>\
+                                                    <div class="mainordedetaildes" id="mainordedetaildes">\
+                                                        <div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["status"] + '</div>\
+                                                        <div class="orderdetailvalue" id="orderdetailvalue">' + allorderlistdata[i].status + '</div>\
+                                                    </div>\
+                                                    <div class="mainordedetaildes" id="mainordedetaildes">\
+                                                        <div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["order_id"] + '</div>\
+                                                        <div class="orderdetailvalue" id="orderdetailvalue">' + allorderlistdata[i].order_id + '</div>\
+                                                    </div>\
+                                                    <div class="mainordedetaildes" id="mainordedetaildes">\
+                                                        <div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["payment_method"] + '</div>\
+                                                        <div class="orderdetailvalue" id="orderdetailvalue">' + allorderlistdata[i].payment_method.payment_method_title + '</div>\
+                                                    </div>\
+                                                    <div class="mainordedetaildes" id="mainordedetaildes">\
+                                                        <div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["shipping_method"] + '</div>\
+                                                        <div class="orderdetailvalue" id="orderdetailvalue">' + allorderlistdata[i].shipping_message + '</div>\
+                                                    </div>\
+                                                    <div class="mainordedetaildes" id="mainordedetaildes">\
+                                                        <div class="orderdetaillabel" id="orderdetaillabel">' + locale.message.text["order_date"] + '</div>\
+                                                        <div class="orderdetailvalue" id="orderdetailvalue">' + allorderlistdata[i].order_date + '</div>\
+                                                    </div>\
+                                                    <div class="mainordedetaillabel" id="mainordedetaillabel">' + locale.message.text["items_in_your_order"] + '</div>';
+                            var productidslength = allorderlistdata[i].product.id.length;
+                            //alert("leng is ="+productidslength);
+                            var j = 0;
+                            for (j = 0; j < productidslength; j++) {
+                                orderdetailhtml += '<div class="mainproductcolsubdiv" id="mainproductcolsubdiv">\
+                                                    <div class="mainproductcolimgdiv" id="mainproductcolimgdiv">\
+                                                        <img src="' + allorderlistdata[i].product.image[j] + '" onerror="bad_image(this);"/>\
+                                                    </div>\
+                                                    <div class="mainproductcoldesdiv" id="mainproductcoldesdiv">\
+                                                        <div class="mainproductcoldesname" id="mainproductcoldesname">' + allorderlistdata[i].product.name[j] + '</div>\
+                                                        <div class="mainproductcoldesprice" id="mainproductcoldesprice">\
+                                                            <div class="maincoldesprice">' + app_curr_symbol + ' ' + parseFloat(allorderlistdata[i].product.unitprice[j]).toFixed(2) + '</div>\
+                                                            <div class="maincoldessymbol">x</div>\
+                                                            <div class ="maincoldesquan">' + parseInt(allorderlistdata[i].product.quantity[j]) + '</div>';
+                                var productcaltotal = allorderlistdata[i].product.quantity[j] * allorderlistdata[i].product.unitprice[j];
+                                //alert(productcaltotal);
+                                orderdetailhtml += '<div class ="maincoldestotal product_price_color">' + app_curr_symbol + ' ' + parseFloat(productcaltotal).toFixed(2) + '</div></div>\
+                                                    </div>\
+                                                 </div>';
+                            }
+
+                            orderdetailhtml += '<div class="mainordedetailgrand" id="mainordedetailgrand">\
+                                                    <div class="mainordedetailgrandleft"><b>' + locale.message.text["shipping_amount"] + '</b></div>\
+                                                    <div class="mainordedetailgrandright product_price_color">' + app_curr_symbol + ' ' + parseFloat(allorderlistdata[i].shipping_amount).toFixed(2) + '</div><div class="mainordedetailgrandleft"><b>' + locale.message.text["tax"] + '</b></div>\
+                                                    <div class="mainordedetailgrandright product_price_color">' + app_curr_symbol + ' ' + parseFloat(allorderlistdata[i].tax_amount).toFixed(2) + '</div>';
+                            if (allorderlistdata[i].discount_amount) {
+                                orderdetailhtml += '<div class="mainordedetailgrandleft"><b>' + locale.message.text["discount"] + '</b></div>\
+                                                    <div class="mainordedetailgrandright product_price_color">-' + app_curr_symbol + ' ' + parseFloat(allorderlistdata[i].discount_amount).toFixed(2) + '</div>';
+                            }
+                            orderdetailhtml += '<div class="mainordedetailgrandleft"><b>' + locale.message.text["grand_total"] + '</b></div>\
+                                                    <div class="mainordedetailgrandright product_price_color">' + app_curr_symbol + ' ' + parseFloat(allorderlistdata[i].grand_total).toFixed(2) + '</div>\
+                                                </div>\
+                                                <div class="viewallorder" id="viewallorder" onclick="location.reload(true);">' + locale.message.text["view_all_orders"] + '</div>\
+                                            </div>';
+                            break;
+                        }
+                    }
+
+                }
+                //alert(orderdetailhtml);
+                $("#myorder_content").html(orderdetailhtml);
+                $("#myorder_content").trigger("create");
+                $(".ui-loader").hide();
+
+
+            }
+
+            function showHideDiv1(id) {
+                var obj = document.getElementById(id);
+                if (obj.style.display == "none") {
+                    obj.style.display = 'block';
+                } else if (obj.style.display == "block") {
+                    obj.style.display = 'none';
+                }
+            }
+        localStorage.setItem('foo', 0);
+        </script>
+    </head>
+
+    <body onLoad="onLoad()">
+        <div data-role="page" id="mainpage">
+            
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                
+                
+                <div class="navigation_button">
+                    <a href="#" class="fa fa-angle-left fa" onclick="back_click_new();">
+                    </a>
+                </div>
+                <div class="navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                <div class="navigation_logo" align="center">
+                    <a href="javascript:void(0);">
+                        <img class="logo_icon" src="images/spin.gif" style="height:30px;width:30px;" />
+                    </a>
+                </div>
+                
+                <!--<div class="cart_search_container">
+                 <div class="navigation_cart">
+                 <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                 <img class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                 <div class="cartamount">
+                 <div class="cartNew" id="cartProducts">0</div>
+                 </div>
+                 </a>
+                 </div>
+                 
+                 
+                 <div class="navigation_search">
+                 <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon">
+                 </a>
+                 </div>
+                 </div>-->
+                
+                
+                <div class="clear"></div>
+                
+                
+                
+                <div id="push-header" style="display:none">
+                    <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: transparent;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                    <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+                </div>
+                
+            </div>
+            
+            <div data-role="content">
+                <div class="clear"></div>
+                
+                <div id="searchBox" class="searchbox" style="display:none;">
+                    <form name="serachForm" action="javascript:custom_search();">
+                        <div>
+                            <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                            <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div id="loginbox" class="loginbox myloginbox" style="padding:0px !important; margin-top:0px !important;" align="center">
+                    <div id="myorder_msg" style="text-align:left;"></div>
+                    <div id="myorder_content" style="text-align:left;">
+                    </div>
+                </div>
+                <div class="clear"></div>
+            </div>
+            <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+            </div>
+            
+            
+            <nav class="pushy pushy-left">
+                <div id="Cate_slide">
+                </div>
+            </nav>
+            <!-- Site Overlay -->
+            <div class="site-overlay"></div>
+            
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+
+</html>

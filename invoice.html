@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height"/>
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript">
+            app.initialize();
+            </script>
+        <script type="text/javascript" langauge="javascript">
+            var app_curr_symbol = config.data[0].app_curr_symbol;
+            function onLoad(){
+                //verify_session();
+                checkLoginStatus();
+                try {
+					var MYSTORE = JSON.parse(localStorage[config.data[0].storage_key+"_STORE"]);
+					document.title = MYSTORE["store"]["name"];
+					$("#storelabel").html(MYSTORE["store"]["name"]);
+ 				 }
+                      catch (err) {
+                      }
+                $("#mofluid_home_a").html(locale.message.button["home"]); 
+                $("#mofluid_myaccount_a").html(locale.message.button["my_account"]);
+                $("#mofluid_editprofile_a").html(locale.message.button["edit_profile"]);
+                $("#mofluid_myorders_a").html(locale.message.button["my_orders"]);
+                $("#mofluid_signout_a").html(locale.message.button["sign_out"]);
+                $("#mofluid_signin_a").html(locale.message.button["sign_in"]);
+                   $("#searchFilter").attr("placeholder",locale.message.text["search"]);
+                
+                $("#order_id").html(locale.message.text["order_id"]);
+                $("#pName").html(locale.message.text["name"]);
+                $("#payment_method").html(locale.message.text["payment_method"]);
+                $("#shipping_address").html(locale.message.text["shipping_address"]);
+                $("#cities").html(locale.message.text["city"]);
+                $("#states").html(locale.message.text["state"]);
+                $("#zip_code").html(locale.message.text["zipcode"]);
+                $("#amount_payable").html(locale.message.text["amount_payable"]);
+                $("#mobile_no").html(locale.message.text["contact_number"]);
+                $("#email_address").html(locale.message.text["email_address"]);
+                
+                $("#sender_email").html(locale.message.text["sender"] + ' ' + locale.message.text["email_address"]);
+                $("#order_id_2").html(locale.message.text["order_id"]);
+                $("#receiver_name").html(locale.message.text["receiver"] + ' ' + locale.message.text["name"]);
+                $("#receiver_mail_id").html(locale.message.text["receiver"] + ' ' + locale.message.text["email_address"]);
+                $("#ship_address").html(locale.message.text["shipping_address"]);
+                //$("#ship_using").html(locale.message.text["order_id"]);
+                $("#amt_pay").html(locale.message.text["amount_payable"]);
+                $("#mob").html(locale.message.text["contact_no"]);
+                $("#invoice_button").html('  <input id="shopping" type="button" data-role="button" data-theme="c" value="'+locale.message.button["continue_shopping"]+'" onClick="goHomePage()"  /> ');
+                $("#invoice_button").trigger("create");
+                var Order = JSON.parse(localStorage[config.data[0].storage_key+'_Order']);
+                console.log("orer detail");
+                console.log(localStorage[config.data[0].storage_key+'_Order']);
+                var cart_data = JSON.parse(localStorage[config.data[0].storage_key+'_cart']);
+             
+                $("#orderSuccess").html(locale.message.text["order_success"] + "<span style = 'color:#C70808'></span>.");
+                //$("#orderSuccess").html("Thank You for placing your order with us. We'll do our best to deliver it to below address.<span style = 'color:#C70808'></span>.");
+                
+                
+                var ship_type=Order["ship_type"];
+                if(ship_type == "ship2myid"){
+                    $("#sorderid").html(Order["orderid"]);
+                    $("#recname").html(Order["name"]);
+                    $("#recaddress").html(Order["recemail"]);
+                   /* if(config.data[0].default_currency=="INR") {
+                        $("#recamountPay").html('<img class="productPrize" src="images/rupee_symbol.png" width="10px" height="12px">'+Order["amount"]);
+                    }
+                    else {*/
+                        $("#recamountPay").html(app_curr_symbol+Order["amount"]);
+                   // }
+                    $("#recmobile").html(Order["phone"]);
+                    $("#recemail").html(Order["email"]);
+                    $("#normalshipping").hide();
+                    $("#shiptomyid").show();
+                }
+                else{
+                    $("#orderid").html(Order["orderid"]);
+                    $("#pay_method").html(Order["payment_method"]);
+                    
+                    $("#name").html(Order["name"]);
+                    $("#city").html(Order["city"]);
+                    $("#state").html(Order["state"]);
+                    $("#address").html(Order["address"]);
+                    $("#pincode").html(Order["pincode"]);
+                  /*  if(config.data[0].default_currency=="INR") {
+                        $("#amountPay").html('<img class="productPrize" src="images/rupee_symbol.png" width="10px" height="12px">'+Order["amount"]);
+                    }
+                    else {*/
+                        $("#amountPay").html(app_curr_symbol+cart_data.cart.total_amount);
+              //      }
+                    $("#mobile").html(Order["phone"]);
+                    $("#email").html(Order["email"]);
+                    $("#normalshipping").show();
+                    $("#shiptomyid").hide();
+                }
+             getFooter();
+            }
+        
+        function goHomePage() {
+            if(localStorage[config.data[0].storage_key+'_Order']) {
+                var OldOrder = JSON.parse(localStorage[config.data[0].storage_key+'_Order']);
+                var OldSession = JSON.parse(localStorage[config.data[0].storage_key+'_Session']);
+                localStorage.clear();
+                localStorage[config.data[0].storage_key+'_Order'] = JSON.stringify(OldOrder);
+                localStorage[config.data[0].storage_key+'_Session'] = JSON.stringify(OldSession);
+            }
+            Page.redirect('index.html', 'slide', 'down')
+            //redirectTopage('index.html');
+        }
+  function showHideDiv1(id){
+  var obj = document.getElementById(id);
+    if (obj.style.display=="none"){
+      obj.style.display='block';
+    } else if(obj.style.display=="block"){
+      obj.style.display='none';
+    }
+}
+        localStorage.setItem('foo', 0);
+            </script>
+    </head>
+    <body onLoad="onLoad()">
+        <div data-role="page" id="mainpage" >
+            
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                
+                <div class="navigation_menu_button1 navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                <div class="navigation_logo logo_invoice" align="center">
+                    <a href="javascript:void(0);">
+                        <img  class="logo_icon" src="images/spin.gif" style="height:30px;width:30px;"/>
+                    </a>
+                </div>
+                
+               
+               <!--<div class="cart_search_container">
+                   <div class="navigation_cart">
+                       <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                           <img  class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                           <div class="cartamount">
+                               <div class="cartNew" id="cartProducts">0</div>
+                           </div>
+                       </a>
+                   </div>
+                   
+                   
+                   <div class="navigation_search">
+                       <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon"></a>
+                   </div>
+               </div>-->
+                
+                               
+                <div class="clear"></div>
+                
+
+                
+            <div id="push-header" style="display:none">
+                   <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: #e5e5e5;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                   <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+               </div>
+            </div>
+            
+            <div data-role="content">
+                <div class="clear"></div>
+                
+                <div id="searchBox" class="searchbox" style="display:block;">
+                    <form name="serachForm" action="javascript:custom_search();">
+                        <div>
+                            <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                            <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div id="loginbox" class="loginbox" align="center">
+                    
+                    <div id="invoice_content">
+                     <div id = 'orderSuccess' class = "status messages" style="color:#000000"></div>
+                   <div id="normalshipping" align="center">
+                       <table id="invoice" width="100%" cellpadding="0" cellspacing="0" >
+                           
+                           <tr>
+                               <td id="order_id"></td> 
+                               <td id="orderid"></td> 
+                           </tr>
+                           
+                           <tr>
+                               <td id="payment_method"></td>
+                               <td id="pay_method"></td>
+                           </tr>
+                           
+                           <tr>
+                               <td class="pName" id="pName"></td>
+                               <td id="name"></td>
+                           </tr>
+                           <tr>
+                               <td id="shipping_address"></td>
+                               <td id="address"> </td>
+                           </tr>
+                           <tr>
+                               <td id="cities"></td>
+                               <td id="city"></td>
+                           </tr>
+                           <tr>
+                               <td id="states"></td>
+                               <td id="state"> </td>
+                           </tr>
+                           <tr>
+                               <td id="zip_code"></td>
+                               <td id="pincode"> </td>
+                           </tr>
+                           <tr>
+                               <td id="amount_payable"></td>
+                               <td id="amountPay"> </td>
+                           </tr>
+                           <tr>
+                               <td id="mobile_no"></td>
+                               <td id="mobile"> </td>
+                           </tr>
+                           <tr>
+                               <td id="email_address"></td>
+                               <td id="email"> </td>
+                           </tr>
+                       </table>
+                   </div>
+                   <div id="shiptomyid" style="display:none;">
+                        <table id="productDes" width="100%" cellpadding="0" cellspacing="0"  >
+                           
+                           <tr>
+                               <td id="order_id_2" ></td> 
+                               <td id="sorderid"></td>
+                           </tr>
+                           <tr>
+                               <td class="pName" id="receiver_name"></td>
+                               <td id="recname"></td>
+                           </tr>
+                           <tr> 
+                               <td id="receiver_mail_id"></td>
+                               <td id="recaddress"> </td>
+                           </tr>
+                           <tr>
+                               <td id="ship_address"></td>
+                               <td id="ship_using"></td>
+                           </tr>
+                           <tr>
+                               <td id="amt_pay"></td>
+                               <td id="recamountPay"> </td>
+                           </tr>
+                           <tr>
+                               <td id="mob"></td>
+                               <td id="recmobile"> </td>
+                           </tr>
+                           <tr>
+                               <td id="sender_email"></td>
+                               <td id="recemail"> </td>
+                           </tr>
+                       </table>
+                   </div>
+                   <div style="margin:0px auto;width:100%;" id="invoice_button">
+                       <div style="height:10px"></div>
+                    <!--<input id="shopping" type="button" data-role="button" data-theme="c" value="Continue Shopping >>" onClick="goHomePage()"  />-->
+                   </div>
+                   
+                   
+                    </div>
+
+                    
+                </div>
+                
+                
+                <div class="clear"></div>
+                
+                
+
+
+            </div>
+            
+            <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+            </div>
+            
+            
+            <nav class="pushy pushy-left">
+                <div id="Cate_slide">
+                </div>
+            </nav>
+            <!-- Site Overlay -->
+            <div class="site-overlay"></div>
+
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+</html>

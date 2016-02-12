@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height"/>
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+        
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript" src="js/mofluid_slider.js"></script>
+        <style>
+            .ui-state-disabled{
+                opacity:1;
+            }
+        </style>
+        <script type="text/javascript" langauge="javascript">
+            function onDeviceReady(){
+                fetchStoredetailpreview();
+                checkLoginStatus();
+                $("#mofluid_home_a").html(locale.message.button["home"]);
+                $("#mofluid_myaccount_a").html(locale.message.button["my_account"]);
+                $("#mofluid_editprofile_a").html(locale.message.button["edit_profile"]);
+                $("#mofluid_myorders_a").html(locale.message.button["my_orders"]);
+                $("#mofluid_signout_a").html(locale.message.button["sign_out"]);
+                $("#mofluid_signin_a").html(locale.message.button["sign_in"]);
+                $("#support").html(locale.message.text["support_text"]);
+                $("#policies").html(locale.message.text["policy_text"]);
+                $("#heading_text").html(locale.message.text["shop_by_categories"]);
+                if(locale.message.text["shop_by_categories"] == null || locale.message.text["shop_by_categories"] == '')
+                $("#heading_text").html(locale.message.text["shop_by_departments"]);
+                else
+                $("#heading_text").html(locale.message.text["shop_by_departments"]);
+                $("#searchFilter").attr("placeholder",locale.message.text["search"]);
+                getFooter_preview();
+            }
+
+           setInterval(function(){
+                            $(".ui-loader").hide();
+                $(".ui-page").click(function(event) {
+                                    $.mobile.loading("hide");
+                                    $(".ui-loader").hide();
+                    event.preventDefault();
+                });
+            },1000);
+           document.addEventListener("click",handler,true);
+                    
+                    function handler(e){
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+        </script>
+    </head>
+    <body onLoad="onDeviceReady()">
+        <div data-role="page" data-dom-cache="true" id="mainpage" class="pushnotification">
+            
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                
+                <div class="navigation_menu_button1 navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                
+                <div class="navigation_logo1 navigation_logo" align="center">
+                    <a href="javascript:void(0);">
+                        <img  class="logo_icon" src="images/spin.gif" style="height:30px;width:30px;"/>
+                    </a>
+                </div>
+                
+                <div class="clear"></div>
+                
+                <div id="push-header" style="">
+                    <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: #e5e5e5;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                    <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+                </div>
+                
+            </div>
+            
+            <div data-role="content" class="home_content">
+                <div id="searchBox" class="searchbox" style="display:block;">
+                    <form name="serachForm" action="javascript:custom_search();">
+                        <div>
+                            <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" disabled/>
+                            <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                
+                
+                <div>
+                    <div class="item hideit" align="center" id="hideit"><img src="images/spin.gif"></div>
+                    <div id="banner_slider" class="slider-contaner" style="text-align:center;width:100%">
+                    </div>
+                </div>
+                
+                <!-- Slider for Feature Products -->
+                <div class="category_list" style = "display:none" id="feature_products_outer_div">
+                    <div class="heading_text" id="feature_products_inner_div"></div>
+                </div>
+                <div id="featured_owl" class="parent" data-role="none">
+                    
+                </div>
+                
+                <!-- Slider for Optional Products -->
+                <div class="category_list" style="display:none" id="new_products_outer_div">
+                    <div class="heading_text" id="new_products_inner_div"></div>
+                </div>
+                <div id="new_owl" class="parent" data-role="none">
+                    <center><img src="images/spin.gif"></center>
+                </div>
+                
+            </div>
+            
+            <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+            </div>
+            
+            <nav class="pushy pushy-left">
+                <div id="Cate_slide">
+                    <center style="margin-top:100px;"><img src="images/spin.gif"></center>
+                </div>
+            </nav>
+            <!-- Site Overlay -->
+            <div class="site-overlay"></div>
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+    
+    <script>
+        
+        function app_local_store_new(){
+            setApplicationLogoBanner(localStorage.getItem('logoban'));
+        }
+        
+        function feature_local(){
+            //var response =  JSON.parse(localStorage.getItem('feature_local_data'));
+            feature_product_list(localStorage.getItem('feature_local_data'));
+        }
+        
+        function new_local(){
+            localStorage.setItem('foo',0);
+            new_product_list(localStorage.getItem('new_local_data'));
+        }
+
+        function getFooter_preview() {
+            var footerText = '<fieldset class="ui-grid-c" style="text-align: center;background: orange;width:100%;height:100%;"><div class="ui-block-b css_footer"><a href="#" class="fa fa-home fa" onclick=\'Page.redirect("index.html", "slide", "down");\'></a></div><div class="ui-block-b css_footer"><a href="javascript:void(0);" onclick="new_search_btn()" id="new_search_btn"class="fa fa-search fa"></a></div><div class="ui-block-b css_footer"><a href="#" class="fa fa-user fa" onclick="footer_login()"></a></div><div class="ui-block-b css_footer"><a href="#" class="fa fa-shopping-cart fa" onclick=\'Page.redirect("cart.html", "slide", "down");\'> <div class="cartamount" style="display:block !important;"><div class="cartNew" id="cartProducts">0</div></div></a></div></fieldset>';
+            $(".footer").html(footerText);
+            updateCartQty();
+        }
+    
+    
+    function fetchStoredetailpreview() {
+        if(localStorage.getItem('foo') == 1){
+            setApplicationLogoBanner(localStorage.getItem('logoban'));
+        }
+        else{
+            var store_webservice = config.data[0].baseurl + "?callback=?" + "&store=" + config.data[0].storeid + "&service=storedetails&currency="+app_curr_code+"&theme="+config.data[0].theme;
+            $.ajax({
+                url: store_webservice,
+                type: "get",
+                dataType: "jsonp",
+                async: false,
+                beforeSend: function(){
+                    console.log("Before Store Webservice");
+                },
+                error: function(){
+                    alert(locale.message.alert["try_again"])
+                    console.log("Error  on Webservice");
+                },
+                complete: function(){
+                   console.log("Complete Webservice");
+                },
+                success: function( response ){
+                    //Insert data of storeDetails if cache table don't have data with the key of storedetails
+                    localStorage.setItem('logoban', JSON.stringify(response));
+                    setApplicationLogoBanner_preview(JSON.stringify(response));
+                }
+            });
+        }//end of the tag if table is empty
+    }
+
+    function setApplicationLogoBanner_preview(results) {
+        var response = JSON.parse(results);
+        document.getElementById("hideit").style.display = "";
+        try {
+            var theme = response.theme;
+            var store_response = response.store;
+            var banner_data = theme.banner;
+            var logo_data = theme.logo;
+            var storeLogo = "<a href='javascript:void(0);' onclick=redirectTopage('index.html')><img src="+logo_data.image[0].mofluid_image_value+" onerror ='this.src=\'images/" + config.data[0].logo + "\'' alt='" + config.data[0].logo + "' class='logo_icon'/></a>";
+            $(".navigation_logo").html(storeLogo);
+            var banner_image_slider = '';
+            try { var image_len =banner_data.image.length; } catch(err) {var image_len = 0;}
+            var i = 0;
+            try {
+                if(image_len <= 0 || image_len == null || image_len == "") {
+                    banner_image_slider += '<div class="item"><img src="images/' + config.data[0].banner +'" alt=""  onerror="this.src=\'images/banner.png\'"></div>';
+                    $("#banner_slider").append('<div class="item"><img src="images/' + config.data[0].banner +'" alt=""  onerror="this.src=\'images/banner.png\'"></div>');
+                }
+                else {
+                    for(i=0; i<image_len; i++) {
+                        $("#banner_slider").append('<div class="item"><img onclick="bannerAction(\''+banner_data.image[i].mofluid_image_action+'\')" src="'+banner_data.image[i].mofluid_image_value+'" alt=""  onerror="this.src=\''+ config.data[0].banner+'\'" ></div>');
+                        banner_image_slider += '<div class="item"><img onclick="bannerAction(\''+banner_data.image[i].mofluid_image_action+'\')" src="'+banner_data.image[i].mofluid_image_value+'" alt=""  onerror="this.src=\''+ config.data[0].banner+'\'" ></div>';
+                        
+                    }
+                }
+            } catch(err) {
+                $("#banner_slider").append('<div class="item"><img src="images/' + config.data[0].banner +'" alt=""  onerror="this.src=\'images/banner.png\'"></div>');
+                banner_image_slider += '<div class="item"><img src="images/' + config.data[0].banner +'" alt=""  onerror="this.src=\'images/banner.png\'"></div>';
+            }
+            $( "#hideit" ).remove();
+            var store_data = {};
+            store_data["logo"] = storeLogo;
+            store_data["banner"] = banner_image_slider;
+            store_data["store"] = store_response;
+            localStorage[config.data[0].storage_key+"_STORE"] = JSON.stringify(store_data);
+            var owl_banner = $("#banner_slider");
+            owl_banner.owlCarousel({
+                items : 1, //10 items above 1000px browser width
+                itemsDesktop : [1000,1], //5 items between 1000px and 901px
+                itemsDesktopSmall : [900,1], // betweem 900px and 601px
+                itemsTablet: [600,1], //2 items between 600 and 0
+                itemsMobile : false,  // itemsMobile disabled - inherit from itemsTablet option
+                navigation : false,
+                pagination: true
+            });
+                                   
+        } catch(err) {
+            console.error(err.message);
+        }
+        if(localStorage.getItem('foo') == 1){
+            feature_local();
+            new_local();
+        }
+        else{
+            fetchFeaturesProduct_preview();
+            optional_products_slide_preview();
+        }
+    }
+    
+    function fetchFeaturesProduct_preview() {
+        $.ajax({
+            url: "" + BASE_URL + "?callback=?" + "&store=" + STORE + "&service=getFeaturedProducts&currency=" + app_curr_code,
+            type: 'GET',
+            contentType: 'application/json',
+            dataType: 'json',
+            async: false,
+            error: function(jqXHR, textStatus, errorThrown) {
+               console.log("Cant load homepage webservice data");
+               console.log(textStatus);
+               console.log(errorThrown);
+               alert("Internal server Error! \n please try after some time.")
+            },
+            success: function(response) {
+               localStorage.setItem('feature_local_data', JSON.stringify(response));
+               
+               feature_product_list(JSON.stringify(response));
+            }
+        });
+    }
+    
+    function optional_products_slide_preview(){
+        $.ajax({
+            url: "" + BASE_URL + "?callback=?" + "&store=" + STORE + "&service=getNewProducts&currency=" + app_curr_code,
+            type: 'GET',
+            contentType: 'application/json',
+            dataType: 'json',
+            async: false,
+            error: function(jqXHR, textStatus, errorThrown) {
+               console.log("Cant load homepage webservice data");
+               console.log(textStatus);
+               console.log(errorThrown);
+               alert("Internal server Error! \n please try after some time.")
+            },
+            success: function(response) {
+               localStorage.setItem('new_local_data', JSON.stringify(response));
+               new_product_list(JSON.stringify(response));
+            }
+        });
+    }
+    </script>
+</html>

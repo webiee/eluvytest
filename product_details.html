@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height"/>
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+          <style>
+
+        </style>
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript">
+            app.initialize();
+        </script>
+        <script type="text/javascript">
+        /* 
+         * Global Variable Declaration
+         */
+        var global_results_configurable;
+        var rel_arr;
+        var selected_value_data, first_select_id, relation_mapping, first_option_id;
+        var has_custom_options;
+        var product_final_price = 0;
+        var app_curr_code = config.data[0].app_currency;
+        var app_curr_symbol = config.data[0].app_curr_symbol;
+        
+        
+        
+        
+        
+        var pId = "";
+        var custom_attr = "";
+        var custom_attr_len = "";
+        var custom_attr_data = "";
+        var pType = "";
+        
+        /*
+         *Function call on load page
+         *@param 
+         *@return
+         */
+        function onLoad() {
+           
+           
+           
+           if(parseInt(localStorage[config.data[0].storage_key+'tax_flag'])==1)
+            {
+                $("#tax_type").show();
+                $("#tax_type").html("("+locale.message.text["including_tax"]+")");
+            }
+            /*else
+            {
+                $("#tax_type").show();
+                $("#tax_type").html("("+locale.message.text["excluding_tax"]+")");
+            }*/
+            
+	        $("#product_description").html(locale.message.text["product_description"]);
+            $("#product_name").html(locale.message.text["products"] + locale.message.text["name"]);
+            $("#item_code").html(locale.message.text["item"]);
+            $("#description").html(locale.message.text["description"]);
+            $("#availability").html(locale.message.text["availability"]);
+            $("#price").html(locale.message.text["price"]);
+            $("#size").html(locale.message.text["price"]);
+            $("#material").html(locale.message.text["price"]);
+            $("#style").html(locale.message.text["price"]);
+            $("#color").html(locale.message.text["price"]);
+	        $("#product_options").html(locale.message.text["product_options"]);
+            $("#searchFilter").attr("placeholder",locale.message.text["search"]);
+            $("#buy_now_div").html(' <input id="buyNow" onclick="addTocartDetail()" class="content-secondry" type="button" data-role="button" data-theme="b" value="'+locale.message.button["add_to_cart"]+'"/  > ');
+            $("#buy_now_div").trigger("create");
+            $("#searchFilter").attr("placeholder",locale.message.text["search_by_name"]);
+            $("#price_symbol").html(price_symbol);
+            $("#price_symbol_cross").html(app_curr_symbol);
+
+           try {
+					var MYSTORE = JSON.parse(localStorage[config.data[0].storage_key+"_STORE"]);
+					document.title = MYSTORE["store"]["name"];
+					$("#storelabel").html(MYSTORE["store"]["name"]);
+ 				 }
+                      catch (err) {
+                      }
+                      
+          if(localStorage.getItem('foo') == 1){
+           
+             try{
+                  var params = JSON.parse(localStorage.getItem('productDetailslocal'));
+                  pType = params.ptype;
+                  pId = params.pid;
+                  
+              }
+              catch(e)
+              {
+                   console.log("error");
+              }
+              if(pType == "configurable"){
+                  product_det_from_page.configurable_product_function(localStorage.getItem('productDetailslocal'));
+              }
+              else if(pType=="grouped"){
+                  
+                  getgroupproductdetail(pId);
+              }
+              else{
+                  //alert("1");
+                  product_det_from_page.simple_product_info(localStorage.getItem('productDetailslocal'));
+              }
+          }
+          else{
+              var params = Page.getParams();
+              try {
+                  pId = params.pid;
+                  pType = params.ptype;
+                  var params = JSON.parse(params);
+                  var results_configurable = params.result;
+                 
+              }
+              catch(e)
+              {
+                  console.log("error");
+              }
+              if(pType == "configurable"){
+                  product_det_from_page.configurable_product_function(JSON.stringify(params));
+              }
+              else if(pType=="grouped"){
+                  
+                  getgroupproductdetail(pId);
+                  
+              }
+              else{
+                product_det_from_page.simple_product_info(JSON.stringify(params));
+              }
+          }
+          
+                      
+                      
+          getFooter();
+      
+   }
+
+
+
+            </script>
+    </head>
+    <body onLoad="onLoad()">
+        <div data-role="page" id="mainpage" >
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                <div class="navigation_button">
+                    <a href="#" class="fa fa-angle-left fa" onclick="back_click_new();">
+                    </a>
+                </div>
+                <div class="navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                
+                <div class="navigation_logo" align="center">
+                    <a href="javascript:void(0);">
+                        <img  class="logo_icon" src="images/spin.gif" style="width:30px;height:30px;"/>
+                        
+                    </a>
+                </div>
+                
+                <!--<div class="cart_search_container">
+                 <div class="navigation_cart">
+                 <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                 <img  class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                 <div class="cartamount">
+                 <div class="cartNew" id="cartProducts">0</div>
+                 </div>
+                 </a>
+                 </div>
+                 
+                 
+                 <div class="navigation_search">
+                 <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon"></a>
+                 </div>
+                 </div>-->
+                
+                
+                <div class="clear"></div>
+                
+                <div id="push-header" style="display:none">
+                    <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: #e5e5e5;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                    <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+                </div>
+            </div>
+            <div data-role="content">
+                <div class="clear"></div>
+                
+                <div id="searchBox" class="searchbox" style="display:none;">
+                    <form name="serachForm" action="javascript:custom_search();">
+                        <div>
+                            <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                            <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div id="loginbox" class="loginbox" align="center">
+                    <h3 id="productName" class="edit_heading" ></h3>
+                    <input type="hidden" id="gpid" />
+                    <input type="hidden" id="group_pro_status" />
+                 <!--   <input type="hidden" id="manage_stock" />
+                    <input type="hidden" id="use_config_manage_stock"/>
+                    <input type="hidden" id="max_sale_qty"/>
+                    <input type="hidden" id="config_manage_stock"/> -->
+                    
+                    
+                    
+                    
+                    
+                    <div>
+                        <div class="item hideit1" id="hideit1" align="center"><img src="images/spin.gif" style="width:30px;height:30px;"></div>
+                        <div id="product_image_slider" style="display:none;" class ="product_image_slider">
+                            
+                        </div></div>
+                    
+                    
+                    
+                    <div id="productdescription" style="display:none">
+                        <h3 class="edit_heading" style="clear:both;margin-top:10px" id="product_description"></h3>
+                        <div id="fulldescription" class="" style="padding-bottom: 15px"></div>
+                        <!---Code for Configurable Options Starts --->
+                        <div id="configurable_product" style="display:none; margin-bottom:20px;">
+                            <table id="configurable_product_table" width="100%" cellpadding="0" cellspacing="0" class="productDesc1">
+                                
+                            </table>
+                        </div>
+                        <!---Code for Configurable Options Ends--->
+                        <table id="productDes" width="100%" cellpadding="0" cellspacing="0" class="productDesc">
+                            <tr>
+                                <td class="pName" id="product_name"></td>
+                                <td id = "pName"></td>
+                                
+                                
+                            </tr>
+                            <tr id="sku_row">
+                                <td id="item_code"></td>
+                                <td id="pSKU"></td>
+                            </tr>
+                            <tr id = "pStockRow">
+                                <td id="availability"></td>
+                                <td id="pStock"> </td>
+                            </tr>
+                            <tr id = "pPriceRow">
+                                <td id="price"></td>
+                                <td>
+                                    <div id="pCrossRow" class="product_special_cut_price_color" style="display:inline;text-decoration:line-through;">
+                                        <span id="price_symbol_cross"></span>
+                                        <div id="pCross" style="display:inline;text-decoration:line-through">
+                                        </div>
+                                    </div>
+                                    <span id="price_symbol" class="product_price_color"></span>
+                                    <div id="pPrice" class="product_price_color" style="display:inline;"></div>
+                                    <div id="pPriceOrg" style="display:none;"></div>
+                                    <div id="tax_type" style="display:none;"></div>
+                                </td>
+                            </tr>
+                            <tr id = "pShippRow" style="display:none">
+                                <td id="shipping_charge"></td>
+                                <td id="pShipp"></td>
+                            </tr>
+                        </table>
+                        <!--Code for Custom Options Startsstyle="display:none;"-->
+                        <div id ="custom_options_collapsible" style="display:none;">
+                            <h3 id="product_options"></h3>
+                            
+                            <div id="custom_options">
+                                
+                            </div>
+                        </div>
+                        
+                        <!--Grouped Products -->
+                        <div id="group_product_div" style="overflow: hidden;clear: both;"></div>
+                        
+                        <!--Code for Custom Options Ends-->
+                        <div id="buy_now_div"></div>
+                        <!--<input id="buyNow" class="content-secondry" type="button" data-role="button" data-theme="b" value="Add to Cart"/>-->
+                    </div>
+                </div>
+                
+                <div class="clear"></div>
+                
+                
+                
+                
+            </div>
+            <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+            </div>
+            <nav class="pushy pushy-left">
+                <div id="Cate_slide">
+                </div>
+            </nav>
+            <!-- Site Overlay -->
+            <div class="site-overlay"></div>
+            
+        </div>
+        
+        
+         <script type="text/javascript" src="js/groupproduct.js"></script>
+        <script type="text/javascript" src="lib/owl-carousel/mofluid_slider.js"></script>
+        <script type="text/javascript" src="js/product_details.js"></script>
+        <script type="text/javascript" src="js/footer.js"></script>
+        <script type="text/javascript" src="js/jqm-spinbox.min.js"></script>
+        
+    </body>
+    
+    <script>
+        
+        function back_click_new() {
+            
+            localStorage.setItem('foo', 1);
+            Page.redirect(history.back(), 'slide', 'right');
+        }
+        
+        </script>
+    
+    
+</html>

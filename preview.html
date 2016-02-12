@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height"/>
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript" src="js/support_cookies.js"></script>
+
+        <script type="text/javascript">
+            app.initialize();
+        </script>
+        
+        <script type="text/javascript">
+            //Jquery ready function
+            var shiping_type="",coupon_code="",coupon_status="0",shippmethod="";
+               var app_curr_symbol = config.data[0].app_curr_symbol;
+            /*
+             *Function call on load page
+             *@param
+             *@return
+             */
+        function onLoad() {
+            verify_session();
+            checkCart();
+            checkLoginStatus();
+            $("#order_text").html(locale.message.text["order_summary"]);
+            $("#mofluid_home_a").html(locale.message.button["home"]); 
+            $("#mofluid_myaccount_a").html(locale.message.button["my_account"]);
+            $("#mofluid_editprofile_a").html(locale.message.button["edit_profile"]);
+            $("#mofluid_myorders_a").html(locale.message.button["my_orders"]);
+            $("#mofluid_signout_a").html(locale.message.button["sign_out"]);
+            $("#mofluid_signin_a").html(locale.message.button["sign_in"]);
+				$("#searchFilter").attr("placeholder",locale.message.text["search"]);
+            
+            $("#user_name").html(locale.message.text["name"]);
+            $("#bill_address_1").html(locale.message.text["billing_address"]);
+            $("#ship_address").html(locale.message.text["shipping_address"]);
+            $("#receiver_email").html(locale.message.text["receiver"] + ' ' + locale.message.text["email_address"]);
+            $("#email_1").html(locale.message.text["email_address"]);
+            $("#payment_method").html(locale.message.text["payment_method"]);
+            $("#product").html(locale.message.text["products"]);
+            $("#image").html(locale.message.text["image"]);
+            $("#qty").html(locale.message.text["qty"]);
+            
+            $("#unit_price").html(locale.message.text["unit_price"]);   
+            $("#shipCod").html(locale.message.text["shipping__handling"]);
+            $("#tax_amount").html(locale.message.text["tax"]);
+            $("#total").html(locale.message.text["total"]);
+            $("#couponCode").html(locale.message.text["discount"]);
+            $("#grand_total").html(locale.message.text["grand_total"]);
+            $("#terms_and_conditions").html(locale.message.text["terms_and_conditions"]);
+            $("#agree").html(locale.message.text["terms_and_conditions_message"]);
+            $("#createorder-btn").html('  <input type="button" id="confirm-btn" class="cartButton2" class="content-secondry" data-role="button" data-theme="b" value="'+locale.message.button["confirm_proceed"]+'" style="padding-bottom:6%;"/> ');
+            $("#createorder-btn").trigger("create");
+            
+            
+            try{
+                var cart = JSON.parse(localStorage[config.data[0].storage_key+"_cart"]);
+                shippmethod=localStorage[config.data[0].storage_key+"_ShipRate"];
+                console.log(shippmethod);
+            }
+            catch(ex){
+                console.log(ex);
+            }
+            console.log(cart);
+            var Order = JSON.parse(localStorage[config.data[0].storage_key+"_PreviewOrder"]);
+            var address = Order.address;
+            $("#personname").html(address.billing["prefix"]+address.billing["firstname"] +" "+address.billing["lastname"]);
+            $("#bill_name").html(address.billing["prefix"]+address.billing["firstname"] +" "+address.billing["lastname"]);
+            $("#bill_address").html(address.billing["address"]);
+            $("#bill_city").html(address.billing["city"]);
+            $("#bill_state").html(address.billing["region"]);
+            $("#bill_country").html(address.billing["country"]);
+            $("#bill_phone").html(address.billing["phone"]);
+            $("#bill_pincode").html(address.billing["pincode"]);
+            var recfirstname=address.shipping["firstname"];
+            var reclastname=address.shipping["lastname"];
+            if(recfirstname == null || recfirstname == ""){
+                recfirstname="";
+            }
+            if(reclastname == null || reclastname == ""){
+                reclastname="";
+            }
+            $("#shipp_name").html(address.shipping["prefix"]+address.shipping["firstname"] +" "+address.shipping["lastname"]);
+            $("#shipp_address").html(address.shipping["address"]);
+            $("#shipp_city").html(address.shipping["city"]);
+            $("#shipp_state").html(address.shipping["region"]);
+            $("#shipp_country").html(address.shipping["country"]);
+            $("#shipp_phone").html(address.shipping["phone"]);
+            $("#shipp_pincode").html(address.shipping["pincode"]);
+            $("#personmail").html(address.billing["email"]);
+            $("#paymethod").html(Order["paymethod_title"]);
+          /*  if(config.data[0].default_currency=="INR") {
+                $("#totamt").html('<img class="productPrize" src="images/rupee_symbol.png" width="10px" height="12px">'+Order["totamt"]);
+            }
+            else{*/
+                $("#totamt").html(app_curr_symbol+Order["totamt"]);
+          //  }
+            
+            try{
+                coupon_status=cart.coupon.applied;
+                if(coupon_status == "1"){
+                    $("#coupon_row").css("display","table-row");
+                    $("#coupon_row").addClass("blue");
+                    $("#grand_row").addClass("pink");
+                    $("#couponCode").html(locale.message.text["discount"]+" ("+cart.coupon.code+")");
+                    
+                }
+                else{
+                    $("#coupon_row").css("display","none");
+                }
+            }
+            catch(ex){
+                console.log(ex);
+            }
+            var BASE_URL  = config.data[0].baseurl;
+            var STORE = config.data[0].storeid;
+            var Session = JSON.parse(localStorage[config.data[0].storage_key+'_Session']);
+            var customerid = Session["customer_id"];
+            //---Fetch Store Details from Mofluid Magento Web Service
+            $.getJSON(""+BASE_URL+"?callback=?"+"&store="+STORE+"&service=termCondition",
+                      function (response) {
+                      var str="";
+                      for(i=0;i<response.length;i++){
+                      str=str+response[i]['content']+" ";
+                      }
+                      });
+                      $("#terms_block").hide();
+                      try {
+					var MYSTORE = JSON.parse(localStorage[config.data[0].storage_key+"_STORE"]);
+					document.title = MYSTORE["store"]["name"];
+					$("#storelabel").html(MYSTORE["store"]["name"]);
+ 				 }
+                      catch (err) {
+                      }
+                      //checkLoginStatus();
+                      if(localStorage[config.data[0].storage_key+"_ShipType"]==3){
+                          $("#receiver_mail").css("display","table-row");
+                      }
+                      $("#shipCode").html(locale.message.text["shipping__handling"] + ' ' + "("+localStorage[config.data[0].storage_key+"_MethodShip"]+")");
+                      $("#shipCod").html(locale.message.text["shipping__handling"] + ' ' + "("+localStorage[config.data[0].storage_key+"_MethodShip"]+")");
+                      var cartItems,productList,storedNames,storedPrices,storedImages,storedQuantities,storedTitles,fullPath,storedShipping,i=0;
+                      try{
+                          cartItems = JSON.parse(localStorage[config.data[0].storage_key+'_pNames']).length;
+                          storedNames = JSON.parse(localStorage[config.data[0].storage_key+'_pNames']);
+                          storedPrices = JSON.parse(localStorage[config.data[0].storage_key+'_pPrices']);
+                          storedImages = JSON.parse(localStorage[config.data[0].storage_key+'_pImages']);
+                          storedTitles = JSON.parse(localStorage[config.data[0].storage_key+'_pTitles']);
+                          storedQuantities = JSON.parse(localStorage[config.data[0].storage_key+'_pQuantities']);
+                          var cart_val=storedQuantities.reduce(function(prev, cur) {
+                                                               return parseInt(prev) + parseInt(cur);
+                                                               });
+                      }
+                      catch(ex){
+                          console.log(ex);
+                      }
+                      while(i<cartItems) {
+                          var pName = storedNames[i];
+                     
+                              //productList = '<tr><td  class="textleft product_name_cart">'+ storedTitles[i] +'</td><td><img  src="'+storedImages[i]+'"></td> <td><span class="box">'+storedQuantities[i]+'</span></td><td class="textright product_price_color">'+app_curr_symbol+ storedPrices[i] +'</td></tr>';
+                              productList = '<div class="my_cart_product">\n\
+                              <div class="my_cart_product_box1"><img src= '+storedImages[i]+' style="width: 100%;" onerror="bad_image(this);"></div>\n\
+                              <div class="my_cart_product_box2"><div class="cart_outer_name"><div class="product_name_cart" > '+ storedTitles[i] +' </div></div><div class="cart_outer_qtn"><div class="price" style=" color: #9A9A9A;">&nbsp;'+app_curr_symbol+ parseFloat(storedPrices[i]).toFixed(2) +'<span class="price" style="margin-left: 50px;">x '+storedQuantities[i]+'</span></div><div class="cart_price">&nbsp;'+app_curr_symbol+ parseFloat(storedPrices[i]).toFixed(2) +' </div></div></div>\n\
+                              </div></div>';
+                          i++;
+                          $("#cartlist").append(productList);
+                      }
+                      try{
+                      
+                              $("#totalAmount").html("&nbsp;"+app_curr_symbol+localStorage[config.data[0].storage_key+"_subtotal"]);
+                              $("#shippingAmount").html("&nbsp;"+app_curr_symbol+cart.shipping_amount);
+                              $("#grandAmount").html("&nbsp;"+app_curr_symbol+cart.total_amount);
+                              $("#couponDetail").html("-"+app_curr_symbol+cart.coupon.amount);
+                              $("#tax_amount_detail").html(app_curr_symbol+cart.tax_amount);
+                              if(cart.tax_amount <= 0) {
+                              	$("#tax_row").css("display","none","important");
+                              }
+                              else {
+                              	$("#tax_row").css("display","table-row","important");
+                              }
+                      
+                      }
+                      catch(ex){
+                          console.log(ex);
+                      }
+                   
+										$(document).on("click","#confirm-btn",function(e){                                              
+											  var amount = localStorage[config.data[0].storage_key+"_totalAmount"];
+                                              $("#createorder-btn").html('<center><img src="images/spin.gif"/></center>');
+                                              var Order = JSON.parse(localStorage[config.data[0].storage_key+"_PreviewOrder"]);
+                                              var previewdata = new Object();
+                                              previewdata['address']=Order["address"];
+                                              previewdata['paymethod']=Order["paymethod"];
+                                              previewdata['paymethod_urlcode']=Order["paymethod_urlcode"];
+                                              previewdata['message']=Order["message"];
+                                              previewdata["saveaction"]=Order["saveaction"];
+                                              previewdata["shippmethod"]=shippmethod;
+                                              previewdata["cart"]=cart;
+                                              saveForm(previewdata);
+                                              });
+                                              getFooter();
+        }
+        
+        function showHideDiv1(id){
+  var obj = document.getElementById(id);
+    if (obj.style.display=="none"){
+      obj.style.display='block';
+    } else if(obj.style.display=="block"){
+      obj.style.display='none';
+    }
+}
+     localStorage.setItem('foo', 0);   
+            </script>
+        
+        </head>
+    <body onLoad="onLoad()">
+        <div data-role="page" id="mainpage" >
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                <div class="navigation_button">
+                    <a href="#" class="fa fa-angle-left fa" onclick="back_click_new();">
+                    </a>
+                </div>
+                <div class="navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                <div class="navigation_logo" align="center">
+                    <a href="javascript:void(0);">
+                        <img  class="logo_icon" src="images/spin.gif" style="width:30px;height:30px;"/>
+
+                    </a>
+                </div>
+              
+              <!--<div class="cart_search_container">
+                  <div class="navigation_cart">
+                      <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                          <img  class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                          <div class="cartamount">
+                              <div class="cartNew" id="cartProducts">0</div>
+                          </div>
+                      </a>
+                  </div>
+                  
+                  
+                  <div class="navigation_search">
+                      <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon"></a>
+                  </div>
+              </div>-->
+                
+                
+                <div class="clear"></div>
+                
+
+
+            <div id="push-header" style="display:none">
+                   <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: #e5e5e5;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                   <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+               </div>
+             </div>
+             <div data-role="content">
+                 <div class="clear"></div>
+                 
+                 <div id="searchBox" class="searchbox" style="display:none;">
+                     <form name="serachForm" action="javascript:custom_search();">
+                         <div>
+                             <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                             <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                 
+                             </ul>
+                         </div>
+                     </form>
+                 </div>
+				  <div id="shipCod" class="shipCodship1" style="text-align: left; margin-top: 25px; margin-left: 16px; font-weight:bold;"></div>
+                <div id="loginbox" class="loginbox">
+                 
+                    <table cellspacing="0" id="previewdata" width="100%" class="previewTable prev" style="border-top:1px solid #eeeeee; padding-top: 16px; ">
+
+                        <tr>
+                            <td><h3 class="pre_heading" id="bill_address_1"></h3></td>
+                            
+                        </tr>
+                        <tr>
+                            <td id="bill_name" ></td>
+                            
+                        </tr>
+                        <tr>
+                            <td id="bill_address" style=" color: #9A9A9A;"></td>
+                          
+                        </tr>
+                        <tr>
+                            <td id="bill_city" style=" color: #9A9A9A;"></td>
+                            
+                        </tr>
+                        <tr>
+                            <td id="bill_state" style=" color: #9A9A9A;" ></td>
+                           
+                        </tr>
+                        <tr>
+                            <td id="bill_country" style=" color: #9A9A9A;"></td>
+                            
+                        </tr>
+                        <tr>
+                            <td id="bill_phone" style=" color: #9A9A9A;"></td>
+                            
+                        </tr>
+                        <tr>
+                            <td id="bill_pincode" style=" color: #9A9A9A;"></td>
+                            
+                        </tr>
+                     
+                        <td>
+                        <table cellspacing="0" id="previewdata" width="100%" class="previewTable prev" style="border-top:1px solid #eeeeee; border-bottom:1px solid #eeeeee; padding-top: 16px; ">
+                        <tr>
+                            
+                            <td><h3 class="pre_heading" id="ship_address"></h3></td>
+                        </tr>
+                        <tr>
+                          
+                            <td id="shipp_name" ></td>
+                        </tr>
+                        <tr>
+                           
+                            <td id="shipp_address" style=" color: #9A9A9A;"> </td>
+                        </tr>
+                        <tr>
+                          
+                            <td id="shipp_city" style=" color: #9A9A9A;"></td>
+                        </tr>
+                        <tr>
+                         
+                            <td id="shipp_state" style=" color: #9A9A9A;"></td>
+                        </tr>
+                        <tr>
+                          
+                            <td id="shipp_country" style=" color: #9A9A9A;"></td>
+                        </tr>
+                        <tr>
+                            
+                            <td id="shipp_phone" style=" color: #9A9A9A;"></td>
+                        </tr>
+                        <tr>
+                           
+                            <td id="shipp_pincode" style=" color: #9A9A9A;"></td>
+                        </tr>
+                           <!--tr>
+                            <td id="email" ><h3 class="pre_heading" style="margin-bottom:0" id="email_1"></h3></td>
+                            <td id="personmail" style=" color: #9A9A9A;"></td>
+                        </tr>
+                        <tr id="receiver_mail" style="display:none">
+                            <td id="recemail" ><h3 class="pre_heading" style="margin-bottom:0" id="receiver_email"></h3></td>
+                            <td id="recpersonmail" style=" color: #9A9A9A;"></td>
+                        </tr>
+                        <tr>
+                            <td id="payment" ><h3 class="pre_heading" style="margin-bottom:0" id="payment_method"></h3></td>
+                            <td id="paymethod" style=" color: #9A9A9A;"></td>
+                        </tr-->
+                        </table>
+                            </td>
+                        
+                        
+
+                        
+                          <tr>
+                            <td colspan="2" style="padding:10px 0px">
+                                <table align="center" cellspacing="0"  width="100%" style="text-align:left; border-top:1px solid #eeeeee;  padding-top: 16px;" id="cartlist" class="preshipTable" >
+                                      <tr>
+										  <tr>
+                                <div id="order_text" style="font-weight:bold;"> </div>
+									</tr>
+                             <div  data-collapsed="false" style="margin-left:0px;text-align:left;margin-right:0px;">
+                                <p id="cartlist"></p>
+                             </div>
+                          </tr>
+                          
+                           <tr>
+                            <td colspan="2" style="padding:10px 0px">
+                                <table align="center" cellspacing="0"  width="100%" style="text-align:left; " id="cartlist" class="preshipTable" >
+                                    <tr>
+                                        <td  style="text-align:left;" id="total"></td>
+                                        <td id ="totalAmount" style="text-align:right;" class="product_price_color"><span class="symbol"></span>&nbsp;</td>
+                                    </tr>
+                                    <tr id="tax_row" class="blue">
+                        				<td style="text-align:left;" id="tax_amount"></td>
+                        				<td id ="tax_amount_detail" style="text-align:right" class="product_price_color"><span class="symbol"></span>&nbsp;$0</td>
+                                    </tr>
+                                    	 <tr class="pink">
+                                        <td  style="text-align:left; font-weight:bold;" id="shipCode"></td>
+                                        <td id ="shippingAmount" style="text-align:right;" class="product_price_color"><span class="symbol"></span>&nbsp;$0</td>
+                                    </tr>
+                                    <tr id="coupon_row" >
+                                        <td  style="text-align:left;" id="couponCode"></td>
+                                        <td id ="couponDetail" style="text-align:right;" class="product_price_color"><span class="symbol"></span>&nbsp;</td>
+                                    </tr>
+                                    <tr class="blue" id="grand_row">
+                                        <td  style="text-align:left;" id="grand_total"></td>
+                                        <td id ="grandAmount" style="text-align:right;" class="product_price_color"><span class="symbol"></span>&nbsp;</td>
+                                    </tr>
+                                    </table>
+                                </td>
+                                </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <div id="terms_block">
+                        <label for="termscondition" style="font-size:14px;padding-top:10px"><h3 id="terms_and_conditions"></h3></label>
+                        <textarea name="termscondition" id="termscondition" style="overflow:auto;max-height:100px;resize:none;word-wrap:break-word;padding-left:20px;padding-right:20px" readonly></textarea>
+                        <label for="same" style="font-size:14px;" id="agree"></label>
+                        <input id="same" name="same" type="checkbox"/>
+                    </div>
+                    <div id="createorder-btn" style="margin-top:25px;">
+                        <!--<input type="button" id="confirm-btn" class="cartButton2" class="content-secondry" data-role="button" data-theme="b" value="Confirm Proceed >>" style="padding-bottom:6%;"/>-->
+                    </div>
+                
+                </div>
+                
+                
+                <div class="clear"></div>
+                
+                
+
+                
+            </div>
+             <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+             </div>
+             <nav class="pushy pushy-left">
+                 <div id="Cate_slide">
+                 </div>
+             </nav>
+             <!-- Site Overlay -->
+             <div class="site-overlay"></div>
+
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+</html>

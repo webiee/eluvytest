@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <title>Mofluid</title>
+    <script type="text/javascript" src="js/header.js"></script>
+    <script type="text/javascript">
+        app.initialize();
+    </script>
+    <script type="text/javascript">
+        var shipAmt = 0;
+        var coupon_status = "";
+        var coupon_code = "",
+            action_type = "";
+        var grandAmt = 0,
+            shipAmt = 0,
+            discount_amount = 0;
+        var shipping_available = 0;
+        var ship_price = 0;
+        var app_curr_code = config.data[0].app_currency;
+        var app_curr_symbol = config.data[0].app_curr_symbol;
+        var pid, address;
+        try{
+            var Session = JSON.parse(localStorage[config.data[0].storage_key + '_Session']);
+            var customerid = Session["customer_id"];
+        }
+        catch(ex){
+        var customerid ="";
+        }
+        try {
+            var Product = new Object();
+            Product['id'] = JSON.parse(localStorage[config.data[0].storage_key + '_pIds']);
+            Product['sku'] = JSON.parse(localStorage[config.data[0].storage_key + '_pNames']);
+            Product['qty'] = JSON.parse(localStorage[config.data[0].storage_key + '_pQuantities']);
+            Product['customoptions'] = JSON.parse(localStorage[config.data[0].storage_key + '_pcustom_options']);
+          //  Product['customprice']   =JSON.parse(localStorage[config.data[0].storage_key+'_pCustomprice']);
+           // Product['customchoice']  =JSON.parse(localStorage[config.data[0].storage_key+'_pChoice']);
+            
+            pid = JSON.stringify(Product);
+
+            //var pid = JSON.stringify(toObject(JSON.parse(localStorage[config.data[0].storage_key+'_pIds']),JSON.parse(localStorage[config.data[0].storage_key+'_pQuantities'])));
+            address = localStorage[config.data[0].storage_key + "_address"];
+            console.error(address);
+        } catch (ex) {
+            console.log("Product and Address Not found " + ex.message);
+        }
+        /*
+         *Function call on load page
+         *@param
+         *@return
+         */
+
+        function onLoad() {
+            checkLoginStatus();
+           // verify_session();
+            $("#order_text").html(locale.message.text["order_summary"]);
+            var coupon_discount = 0;
+            var BASE_URL = config.data[0].baseurl;
+            var STORE = config.data[0].storeid;
+            try {
+                var MYSTORE = JSON.parse(localStorage[config.data[0].storage_key + "_STORE"]);
+                document.title = MYSTORE["store"]["name"];
+                $("#storelabel").html(MYSTORE["store"]["name"]);
+            } catch (err) {}
+            $(".dis_coupon_block").hide();
+
+            totalamt = localStorage[config.data[0].storage_key + "_subtotal"];
+            localStorage[config.data[0].storage_key + "_coupon"] = "";
+
+            try {
+                ship_price = localStorage[config.data[0].storage_key + "_ShipRate"];
+                if (ship_price == "" || ship_price == null) {
+                    ship_price = 0;
+                }
+            } catch (ex) {
+                ship_price = 0;
+            }
+
+            shipping_available = 0;
+            var products = Base64.encode(JSON.stringify(parseProductData(JSON.parse(pid))));
+            var shipping_webservice = config.data[0].baseurl + "?callback=?" + "&store=" + config.data[0].storeid + "&service=preparequote&customerid=" + customerid + "&currency=" + app_curr_code + "&products=" + products + "&address=" + address + "&is_create_quote=0&find_shipping=1&theme=modern";
+            $(".ui-loader").show();
+            $.ajax({
+                url: shipping_webservice,
+                type: "get",
+                dataType: "jsonp",
+                beforeSend: function() {
+                    console.log("Before Shipping Webservice");
+                },
+                error: function() {
+                    $(".ui-loader").hide();
+
+                    if (config.data[0].platform == 'ios' || config.data[0].platform == 'android') {
+                        navigator.notification.alert(locale.message.alert["try_again"], function() {}, config.data[0].app_name, locale.message.button["close"]);
+                    } else {
+                        alert(locale.message.alert["try_again"])
+                    }
+                    console.log("Error  on Webservice");
+                },
+                complete: function() {
+                    console.log("Complete Webservice");
+                },
+                success: function(response) {
+                    $(".ui-loader").hide();
+
+                    console.log(response);
+                    shipping_available = 1;
+                    var available_shipping_method = Base64.decode(response.available_shipping_method);
+                    $("#shipping_method").append(available_shipping_method);
+                    // $("#ship_method").html(available_shipping_method);
+                    $("#shipping_method").trigger("create");
+                    console.log("Success Webservice");
+                }
+            });
+            $("#coupon_row").css("display", "none");
+            var bill_ship_address = JSON.parse(Base64.decode(localStorage[config.data[0].storage_key + "_address"]));
+            var billadd_city = bill_ship_address.billing.city;
+            var billadd_company = bill_ship_address.billing.company;
+            if (billadd_company == null) {
+                billadd_company = "";
+            }
+            var billadd_contactno = bill_ship_address.billing.phone;
+            var billadd_countryid = bill_ship_address.billing.country;
+            var billadd_firstname = bill_ship_address.billing.firstname;
+            var billadd_lastname = bill_ship_address.billing.lastname;
+            var billadd_pincode = bill_ship_address.billing.postcode;
+            var billadd_region = bill_ship_address.billing.region;
+            if (billadd_region == null) {
+                billadd_region = "";
+            }
+            var billadd_street = bill_ship_address.billing.street;
+
+            var shipadd_city = bill_ship_address.shipping.city;
+            var shipadd_company = bill_ship_address.shipping.company;
+            if (shipadd_company == null) {
+                shipadd_company = "";
+            }
+            var shipadd_contactno = bill_ship_address.shipping.phone;
+            var shipadd_countryid = bill_ship_address.shipping.country;
+            var shipadd_firstname = bill_ship_address.shipping.firstname;
+            var shipadd_lastname = bill_ship_address.shipping.lastname;
+            var shipadd_pincode = bill_ship_address.shipping.postcode;
+            var shipadd_region = bill_ship_address.shipping.region;
+            if (shipadd_region == null) {
+                shipadd_region = "";
+            }
+            var shipadd_street = bill_ship_address.shipping.street;
+
+            var bill_add = billadd_firstname + billadd_lastname + billadd_street + billadd_city + billadd_pincode + billadd_region + billadd_countryid + billadd_contactno;
+            var ship_add = shipadd_firstname + shipadd_lastname + shipadd_street + shipadd_city + shipadd_pincode + shipadd_region + shipadd_countryid + shipadd_contactno;
+            var compareflag = bill_add.localeCompare(ship_add);
+            var bill_shipdivhtml = '<div class="mainordedetaildes" id="mainordedetaildes">';
+            if (compareflag == 0) {
+                bill_shipdivhtml += '<div class="orderdetaillabel font_ship_page_heading"  id="orderdetaillabel">' + locale.message.text["billing__shipping_address"] + '</div>';
+            } else {
+                bill_shipdivhtml += '<div class="orderdetaillabel font_ship_page_heading" id="orderdetaillabel">' + locale.message.text["billing_address"] + '</div>';
+            }
+
+            bill_shipdivhtml += '<div class="orderdetailvalue" id="orderdetailvalue">\
+                                        <div class="font_ship_page_heading">' + billadd_firstname + ' ' + billadd_lastname + '</div>\
+                                        <div>' + billadd_street + '</div>\
+                                        <div>' + billadd_city + ' ' + billadd_pincode + '';
+
+            if (billadd_region != "") {
+                bill_shipdivhtml += ', ' + billadd_region + '';
+            }
+
+            bill_shipdivhtml += ', ' + billadd_countryid + '</div>\
+                                    <div>Ph ' + billadd_contactno + '</div>\
+                                </div>\
+                            </div>';
+
+            if (compareflag != 0) {
+                bill_shipdivhtml += '<div class="mainordedetaildes" id="mainordedetaildes">\
+                                            <div class="orderdetaillabel font_ship_page_heading" id="orderdetaillabel">' + locale.message.text["shipping_address"] + '</div>\
+                                            <div class="orderdetailvalue" id="orderdetailvalue">\
+                                                <div class="billnamebold">' + shipadd_firstname + ' ' + shipadd_lastname + '</div>\
+                                                <div>' + shipadd_street + '</div>\
+                                                <div>' + shipadd_city + ' ' + shipadd_pincode + '';
+
+                if (shipadd_region != "") {
+                    bill_shipdivhtml += ', ' + shipadd_region + '';
+                }
+
+                bill_shipdivhtml += '	,' + shipadd_countryid + '</div>\
+                                    <div>Ph ' + shipadd_contactno + '</div>\
+                                        </div>\
+                                        </div>';
+            }
+            $("#bill_ship_des").html(bill_shipdivhtml);
+            $("#bill_ship_des").trigger("create");
+            var cartItems, productList, storedNames, storedPrices, storedImages, storedColor, storedSizes, storedQuantities, storedTitles, fullPath, storedShipping, i = 0;
+            try {
+                cartItems = JSON.parse(localStorage[config.data[0].storage_key + '_pNames']).length;
+                storedNames = JSON.parse(localStorage[config.data[0].storage_key + '_pNames']);
+                storedPrices = JSON.parse(localStorage[config.data[0].storage_key + '_pPrices']);
+                storedImages = JSON.parse(localStorage[config.data[0].storage_key + '_pImages']);
+                storedTitles = JSON.parse(localStorage[config.data[0].storage_key + '_pTitles']);
+                storedQuantities = JSON.parse(localStorage[config.data[0].storage_key + '_pQuantities']);
+                customoptions = JSON.parse(localStorage[config.data[0].storage_key+'_pcustom_options']);
+              //  customprice=JSON.parse(localStorage[config.data[0].storage_key+'_pCustomprice']);
+              //  customchoice=JSON.parse(localStorage[config.data[0].storage_key+'_pChoice']);
+                var cart_val = storedQuantities.reduce(function(prev, cur) {
+                    return parseInt(prev) + parseInt(cur);
+                });
+            } catch (ex) {
+                console.log(ex);
+            }
+            while (i < cartItems) {
+                var pName = storedNames[i];
+                //  productList = '<tr><td class="textleft product_name_cart">'+ storedTitles[i] +'</td><td><img src="'+storedImages[i]+'"></td><td><span class="box">'+storedQuantities[i]+'</span></td> <td class="textright product_price_color">&nbsp;'+app_curr_symbol+storedPrices[i] +'</td></tr>';
+              
+              var customoptions_array = $.map(customoptions[i], function(value, index) {
+                                              return [value];
+                                              });
+                                              
+                                              if(customoptions_array.length > 0)
+                                              {
+              productList = '<div class="my_cart_product">\n\
+                                          <div class="my_cart_product_box1"><img src= ' + storedImages[i] + ' onerror="bad_image(this);"></div>\n\
+                                          <div class="my_cart_product_box2"><div class="cart_outer_name"><div class="product_name_cart" > '+ storedTitles[i] +' </div></div><div class="cart_outer_qtn"><div class="price" style=" color: #9A9A9A;">&nbsp;' + app_curr_symbol + parseFloat(storedPrices[i]).toFixed(2) + '<span class="price" style="margin-left: 50px;">x ' + storedQuantities[i] + '</span></div><div class="ship_price product_price_color font_ship_page_price">&nbsp;' + app_curr_symbol + parseFloat(storedPrices[i]).toFixed(2) + ' </div></div></div>\n\
+                                            </div></div>';
+                                              }
+                                              else
+                                              {
+                                                  productList = '<div class="my_cart_product">\n\
+                                                  <div class="my_cart_product_box1"><img src= ' + storedImages[i] + ' onerror="bad_image(this);"></div>\n\
+                                                  <div class="my_cart_product_box2"><div class="cart_outer_name"><div class="product_name_cart" > ' + storedTitles[i] + ' </div></div><div class="cart_outer_qtn"><div class="price" style=" color: #9A9A9A;">&nbsp;' + app_curr_symbol + parseFloat(storedPrices[i]).toFixed(2) + '<span class="price" style="margin-left: 50px;">x ' + storedQuantities[i] + '</span></div><div class="ship_price product_price_color font_ship_page_price">&nbsp;' + app_curr_symbol + parseFloat(storedPrices[i]).toFixed(2) + ' </div></div></div>\n\
+                                                  </div></div>';
+                                              }
+                i++;
+                $("#cartlist").append(productList);
+            }
+            totalamt = parseFloat(totalamt).toFixed(2);
+            grandAmt = parseFloat(grandAmt).toFixed(2);
+
+            $("#totalAmount").html("&nbsp;" + app_curr_symbol + totalamt);
+            $("#mofluid_home_a").html(locale.message.button["home"]);
+            $("#mofluid_myaccount_a").html(locale.message.button["my_account"]);
+            $("#mofluid_editprofile_a").html(locale.message.button["edit_profile"]);
+            $("#mofluid_myorders_a").html(locale.message.button["my_orders"]);
+            $("#mofluid_signout_a").html(locale.message.button["sign_out"]);
+            $("#mofluid_signin_a").html(locale.message.button["sign_in"]);
+            $("#searchFilter").attr("placeholder", locale.message.text["search"]);
+
+            $("#edit_heading").html(locale.message.text["shipping_method"]);
+            //$("#shipping_method").html(locale.message.text["shipping_method"]);
+            $("#ship_select").html(locale.message.text["select"]);
+            $("#ship_select").trigger("change");
+            $("#shipping_error").html(locale.message.text["no_shipping_methods_message"]);
+            $("#product").html(locale.message.text["products"]);
+            $("#image").html(locale.message.text["image"]);
+            $("#unit_price").html(locale.message.text["unit_price"]);
+            $("#qty").html(locale.message.text["qty"]);
+
+            $("#shippCode").html(locale.message.text["shipping__handling"]);
+            $("#tax_amount").html(locale.message.text["tax"]);
+            $("#couponCode").html(locale.message.text["discount_codes"]);
+            $("#coupon_code_text").html(locale.message.text["coupon_code_text"]);
+            $("#discount_codes").html(locale.message.text["discount_codes"]);
+            $("#grand_total").html(locale.message.text["grand_total"]);
+            $("#total").html(locale.message.text["total"]);
+
+            $("#applybutton").html(' <input type="button" id="apply_coupon" class="cartButton2" class="content-secondry" data-role="button" data-theme="b" value="' + locale.message.button["apply_coupon"] + '" onclick="couponApply();"/>');
+            $("#applybutton").trigger("create");
+            $("#cancelcoupon").html(' <input type="button" id="cancel_coupon" class="cartButton2" class="content-secondry" data-role="button" data-theme="b" value="' + locale.message.button["cancel_coupon"] + '" onclick="cancelCoupon();"/> ');
+            $("#cancelcoupon").trigger("create");
+            $("#cartbtn2").html('  <input type="button" id="buyNow2" class="cartButton2" class="content-secondry" data-role="button" data-theme="c" value="' + locale.message.button["proceed"] + '" style="padding:bottom:1%;" onClick="review_order();"/> ');
+            $("#cartbtn2").trigger("create");
+            $('#buyNow2').button('disable');
+            $('#buyNow2').button('refresh');
+            $("#cancelcoupon").css("display", "none");
+            $("#couponCode").html(locale.message.text["discount"]);
+            $("#coupon_row").css("display", "none");
+            getFooter();
+        }
+        var totalamt, shipAmt;
+        /*
+         *Function call to get shipping detail
+         *@param
+         *@return
+         */
+        function shipping_detail() {
+                $("#coupon_status_msg").html('');
+                $('#buyNow2').button('disable');
+                $('#buyNow2').button('refresh');
+                var cart = {};
+                if ($('option:selected').val() == "Select" || $('option:selected').val() == "noshipping") {
+                    $(".dis_coupon_block").hide();
+                    localStorage[config.data[0].storage_key + "_Shipmethod"] = "Select";
+                    $("#shippingAmount").html("&nbsp;" + app_curr_symbol + "0.00");
+                    $("#shippCode").html(locale.message.text["shipping__handling"]);
+                    shipAmt = 0;
+                    //grandAmt = getDiscountAmount(totalamt,shipAmt);
+                    grandAmt = parseFloat(totalamt).toFixed(2);
+                    $("#grandAmount").html('&nbsp;' + app_curr_symbol + grandAmt);
+                    $("#tax_row").css("display", "none", "important");
+                    $("#coupon_row").css("display", "none", "important");
+                    $("#coupon_code").val("");
+                    $("#cancelcoupon").css("display", "none");
+                    try {
+                        var cart = JSON.parse(localStorage[config.data[0].storage_key + "_cart"]);
+                        var coupon = {};
+                        coupon.applied = 0;
+                        coupon.code = "";
+                        coupon.amount = 0;
+                        cart["coupon"] = coupon;
+                        localStorage[config.data[0].storage_key + "_cart"] = JSON.stringify(cart);
+                    } catch (err) {}
+                } else {
+                    $(".dis_coupon_block").show();
+                    var shipping_method_code = $('option:selected').val();
+                    var coupon_code = $('#coupon_code').val();
+                    var message = $('option:selected').text();
+                    message = message.split("+");
+                    localStorage[config.data[0].storage_key + "_MethodShip"] = message[0]; //+" - "+$('option:selected').attr('id');
+                    shipAmt = $('option:selected').attr("price");
+                    $("#shippCode").html(locale.message.text["shipping__handling"] + ' ' + "(" + message[0] + ")");
+                    grandAmt = parseFloat(totalamt).toFixed(2);
+                    shipAmt = parseFloat(shipAmt).toFixed(2);
+                    var totgrandamt = parseFloat(grandAmt) + parseFloat(shipAmt);
+                    $("#shippingAmount").html("&nbsp;" + app_curr_symbol + shipAmt);
+                    $("#grandAmount").html("&nbsp;" + app_curr_symbol + totgrandamt.toFixed(2));
+                    var products = Base64.encode(JSON.stringify(parseProductData(JSON.parse(pid))));
+                    var prepare_quote_url = BASE_URL + '?callback=?' + '&store=' + STORE + '&service=preparequote&customerid=' + customerid + '&products=' + products + '&address=' + address + '&couponCode=' + coupon_code + '&currency=' + app_curr_code + '&is_create_quote=0&theme=modern&shipmethod=' + $('option:selected').val();
+                    console.log("Quote Prepare URL " + prepare_quote_url);
+                    $(".ui-loader").show();
+                    $.getJSON(prepare_quote_url, function(response) {
+                        console.log(response);
+                        $(".ui-loader").hide();
+
+                        status = response.status;
+                        if (status == "success") {
+                            coupon_discount = parseFloat(response.coupon_discount).toFixed(2);
+                            coupon_status = response.coupon_status;
+                            cart["tax_amount"] = parseFloat(response.tax_amount).toFixed(2);
+                            cart["total_amount"] = parseFloat(response.total_amount).toFixed(2);
+                            cart["shipping_amount"] = parseFloat(response.shipping_amount).toFixed(2);
+                            var coupon = {};
+                            coupon.applied = 0;
+                            coupon.code = "";
+                            coupon.amount = 0;
+                            cart["coupon"] = coupon;
+                            if (cart["tax_amount"] == "" || cart["tax_amount"] == null) {
+                                $("#tax_row").css("display", "none", "important");
+                                $("#tax_row").trigger("create");
+                            } else if (cart["tax_amount"] > 0) {
+                                $("#tax_amount_detail").html("&nbsp;" + app_curr_symbol + cart["tax_amount"]);
+                                $("#tax_row").css("display", "table-row", "important");
+                                $("#tax_row").trigger("create");
+                            } else {
+                                $("#tax_row").css("display", "none", "important");
+                                $("#tax_row").trigger("create");
+                            }
+                            $("#grandAmount").html("&nbsp;" + app_curr_symbol + cart["total_amount"]);
+                            if (coupon_code == "") {
+                                $("#cancelcoupon").css("display", "none");
+                                var coupon = {};
+                                coupon.applied = 0;
+                                coupon.code = "";
+                                coupon.amount = 0;
+                                cart["coupon"] = coupon;
+                                $("#couponCode").html(locale.message.text["discount"]);
+                                $("#couponDetail").html("");
+                                $("#coupon_row").css("display", "none");
+                                $("#coupon_status_msg").html('');
+                            } else if (coupon_code != "" && coupon_status == 0) {
+                                $("#cancelcoupon").css("display", "none");
+                                var coupon = {};
+                                coupon.applied = 0;
+                                coupon.code = "";
+                                coupon.amount = 0;
+                                cart["coupon"] = coupon;
+                                $("#couponCode").html(locale.message.text["discount"]);
+                                $("#couponDetail").html("");
+                                $("#coupon_row").css("display", "none");
+                                $("#coupon_status_msg").html(locale.message.alert["coupon_failed"].replace("{{coupon}}", coupon_code));
+                            } else if (coupon_code != "" && coupon_status == 1) {
+                                $("#cancelcoupon").css("display", "block");
+                                $("#couponCode").html(locale.message.text["discount"] + " (" + coupon_code + ")");
+                                $("#couponDetail").html("&nbsp; -" + app_curr_symbol + Math.abs(coupon_discount));
+                                $("#coupon_row").css("display", "table-row", "important");
+                                $("#coupon_row").trigger("create");
+                                var coupon = {};
+                                coupon.applied = 1;
+                                coupon.code = coupon_code;
+                                coupon.amount = Math.abs(coupon_discount);
+                                cart["coupon"] = coupon;
+                                $("#coupon_status_msg").html(locale.message.alert["coupon_applied"].replace("{{coupon}}", coupon_code));
+                            }
+                        }
+                        console.log(cart);
+                        var quote = new Object();
+                        quote["shippingmethod"] = shipping_method_code;
+                        quote["cart"] = cart;
+                        localStorage[config.data[0].storage_key + "_cart"] = JSON.stringify(quote);
+                        $('#buyNow2').button('enable');
+                        $('#buyNow2').button('refresh');
+                    });
+
+                }
+            }
+            /*
+             *Function call to review order
+             *@param
+             *@return
+             */
+        function review_order() {
+            if (shipping_available) {
+                if ($('option:selected').val() == "Select") {
+                    if (config.data[0].platform == 'ios' || config.data[0].platform == 'android') {
+                        navigator.notification.alert(locale.message.alert["shipping_mode"], function() {}, config.data[0].app_name, locale.message.button["close"]);
+                    } else {
+                        alert(locale.message.alert["shipping_mode"]);
+                    }
+                } else {
+                    localStorage[config.data[0].storage_key + "_totalAmount"] = grandAmt;
+                    localStorage[config.data[0].storage_key + "_shippingAmount"] = shipAmt;
+                    localStorage[config.data[0].storage_key + "_TotalShipp"] = shipAmt;
+                    Page.redirect("paymentmethod.html", 'slide', 'down')
+                   // redirectTopage("paymentmethod.html");
+                }
+            } else {
+                if (config.data[0].platform == 'ios' || config.data[0].platform == 'android') {
+                    navigator.notification.alert(locale.message.text["no_shipping_methods_message"], function() {}, config.data[0].app_name, locale.message.button["close"]);
+                } else {
+                    alert(locale.message.text["no_shipping_methods_message"]);
+                }
+            }
+        }
+
+        function couponApply() {
+                $("#coupon_status_msg").val('');
+                var couponcode = $("#coupon_code").val();
+                if (couponcode == "") {
+                    if (config.data[0].platform == 'ios' || config.data[0].platform == 'android') {
+                        navigator.notification.alert(locale.message.text["coupon_code_text"],
+                            function() {},
+                            config.data[0].app_name,
+                            locale.message.button["close"]
+                        );
+                    } else {
+                        alert(locale.message.text["coupon_code_text"]);
+                    }
+                    $("#coupon_code").focus();
+                } else {
+                    if ($('option:selected').val() == "Select") {
+                        if (config.data[0].platform == 'ios' || config.data[0].platform == 'android') {
+                            navigator.notification.alert(locale.message.alert["shipping_mode"],
+                                function() {},
+                                config.data[0].app_name,
+                                locale.message.button["close"]
+                            );
+                        } else {
+                            alert(locale.message.alert["shipping_mode"]);
+                        }
+                    } else {
+                        localStorage[config.data[0].storage_key + "_coupon_code"] = $("#coupon_code").val();
+                        shipping_detail();
+                    }
+                }
+            }
+            /*
+             *Function convert array to object
+             *@param name and values
+             *@return result
+             */
+
+        function toObject(names, values) {
+            var result = {};
+            for (var i = 0; i < names.length; i++)
+                result[names[i]] = values[i];
+            return result;
+        }
+
+        function showHideDiv1(id) {
+            var obj = document.getElementById(id);
+            if (obj.style.display == "none") {
+                obj.style.display = 'block';
+            } else if (obj.style.display == "block") {
+                obj.style.display = 'none';
+            }
+        }
+    localStorage.setItem('foo', 0);
+    </script>
+
+</head>
+
+<body onLoad="onLoad()">
+    <div data-role="page" id="mainpage">
+        <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+            <div class="navigation_button">
+                <a href="#" class="fa fa-angle-left fa" onclick="back_click_new();">
+                </a>
+            </div>
+            <div class="navigation_menu_button menu-btn">
+                <a href="#" class="fa fa-bars fa">
+                    
+                </a>
+            </div>
+            <div class="navigation_logo" align="center">
+                <a href="javascript:void(0);">
+                    <img class="logo_icon" src="images/spin.gif" style="width:30px;height:30px;" />
+                </a>
+            </div>
+
+            <!--<div class="cart_search_container">
+                <div class="navigation_cart">
+                    <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                        <img class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                        <div class="cartamount">
+                            <div class="cartNew" id="cartProducts">0</div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="navigation_search">
+                    <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon">
+                    </a>
+                </div>
+            </div>-->
+
+            <div class="clear"></div>
+                        <div id="push-header" style="display:none">
+                <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: transparent;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+            </div>
+        </div>
+        <div data-role="content">
+            <div class="clear"></div>
+            
+            <div id="searchBox" class="searchbox" style="display:none;">
+                <form name="serachForm" action="javascript:custom_search();">
+                    <div>
+                        <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                        <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                            
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div id="loginbox" class="loginbox" align="center">
+                <h3 class="heading_left font_ship_page_heading" style="margin-bottom:0px; margin-top: 0px; line-height: 40px;" id="edit_heading"></h3>
+                <div id="ship_method">
+                    <select id="shipping_method" name="shipping_method" onchange="shipping_detail();">
+                        <option value='Select' style="font-size:14px;" id="ship_select"></option>
+                    </select>
+                </div>
+                <div id="shipping_error" style="color:#cc0000;border:2px solid #eeeeee; padding:10px;margin:10px 0px;display:none;width:100%;">
+                </div>
+                <div id="bill_ship_des" style="text-align:left; padding-left:0px !important; background:transparent !important;  padding-top: 20px;"></div>
+                <div id="order_text" class="font_ship_page_heading" style="text-align:left; padding-left:0px !important; background:transparent !important;  padding-top: 20px;">Order Summary</div>
+                <div data-collapsed="false" style="margin-left:0px;text-align:left;margin-right:0px;">
+                    <p id="cartlist"></p>
+                </div>
+
+                <table align="center" cellspacing="0" cellpadding="0" width="100%" class="shipTable" id="cart_list_table">
+                    <tr>
+                        <td style="text-align:left;" id="total" class="font_ship_page_heading"></td>
+                        <td id="totalAmount" style="text-align:right;" class="product_price_color font_ship_page_price"><span class="symbol"></span>&nbsp;</td>
+                    </tr>
+                    <tr id="tax_row" class="blue">
+                        <td style="text-align:left;" id="tax_amount" class="font_ship_page_heading"></td>
+                        <td id="tax_amount_detail" style="text-align:right" class="product_price_color font_ship_page_price"><span class="symbol"></span>&nbsp;$0</td>
+                    </tr>
+                    <tr class="pink">
+                        <td style="text-align:left;" id="shippCode" class="font_ship_page_heading"></td>
+                        <td id="shippingAmount" style="text-align:right" class="product_price_color font_ship_page_price"><span class="symbol"></span>&nbsp;$0</td>
+                    </tr>
+                    <tr id="coupon_row">
+                        <td style="text-align:left;" id="couponCode" class="font_ship_page_heading"></td>
+                        <td id="couponDetail" style="text-align:right" class="product_price_color font_ship_page_price"><span class="symbol"></span>&nbsp;$0</td>
+                    </tr>
+                    <tr class="blue" id="grand_row">
+                        <td style="text-align:left;" id="grand_total" class="font_ship_page_heading"> </td>
+                        <td id="grandAmount" style="text-align:right" class="product_price_color font_ship_page_price"><span class="symbol"></span>&nbsp;</td>
+                    </tr>
+                </table>
+
+                <div id="couponcode" class="couponcode checkout_discount_code dis_coupon_block">
+                    <h3 class="font_ship_page_heading" id="discount_codes"> </h3>
+                    <div id="coupon_code_text"></div>
+
+                    <input type="text" name="coupon_code" id="coupon_code" />
+
+                    <div id="coupon_status_msg"></div>
+                    <div class="clear"></div>
+                    <div style="width:100%;display:inline-block">
+                        <div style="float:left;width:45%;margin-right:3%;overflow:hidden;" id="applybutton">
+                            <!--<input type="button" id="apply_coupon" class="cartButton2" class="content-secondry" data-role="button" data-theme="b" value="Apply Coupon" onclick="applyCoupon();"/>-->
+                        </div>
+                        <div style="float:left;width:45%;margin-right:3%;overflow:hidden;display:none" id="cancelcoupon">
+                            <!--<input type="button" id="cancel_coupon" class="cartButton2" class="content-secondry" data-role="button" data-theme="b" value="Cancel Coupon" onclick="cancelCoupon();"/>-->
+                        </div>
+                    </div>
+                </div>
+                <div class="clear"></div>
+                <div id="cartbtn2" style="padding-top:2%;">
+                    <!--<input type="button" id="buyNow2" class="cartButton2" class="content-secondry" data-role="button" data-theme="c" value="Proceed >>" style="padding:bottom:1%;" onClick="review_order();"/>-->
+                </div>
+                <div class="clear"></div>
+                
+            </div>
+        </div>
+        <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+        </div>
+        <nav class="pushy pushy-left">
+            <div id="Cate_slide">
+            </div>
+        </nav>
+        <!-- Site Overlay -->
+        <div class="site-overlay"></div>
+
+    </div>
+    <script type="text/javascript" src="js/footer.js"></script>
+</body>
+
+</html>

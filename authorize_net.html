@@ -1,0 +1,285 @@
+<!--
+ /****************************************************************************
+ -----------------------------------------------------------------------------
+ *  File            :     pay.html
+ *  Application     :     Mofluid App for your Magento Site
+ *  Description     :     Redirect to payment gateway
+ *  Organization    :     Mofluid
+ *  Org URL         :     http://www.mofluid.com
+ -----------------------------------------------------------------------------
+ Copyright 2013: Ebizon Netinfo Pvt. Ltd. All rights reserved
+ -----------------------------------------------------------------------------
+ *****************************************************************************/
+ -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=1"/>
+        <title></title>
+        <!-- All Js(js/) and Css(css/) are included here  -->
+        <script type="text/javascript" src="js/config.js"></script>
+        <script type="text/javascript" src="locale/locale.js"></script>
+        <script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
+        <script src="js/hmac-md5.js"></script>
+        <script type="text/javascript">
+            /*
+             *Function call when page loads
+             */
+        
+        var Base64 = {
+            
+            // private property
+            _keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+            
+            // public method for encoding
+            encode : function (input) {
+                var output = "";
+                var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+                var i = 0;
+                
+                input = Base64._utf8_encode(input);
+                
+                while (i < input.length) {
+                    
+                    chr1 = input.charCodeAt(i++);
+                    chr2 = input.charCodeAt(i++);
+                    chr3 = input.charCodeAt(i++);
+                    
+                    enc1 = chr1 >> 2;
+                    enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+                    enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+                    enc4 = chr3 & 63;
+                    
+                    if (isNaN(chr2)) {
+                        enc3 = enc4 = 64;
+                    } else if (isNaN(chr3)) {
+                        enc4 = 64;
+                    }
+                    
+                    output = output +
+                    this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
+                    this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
+                    
+                }
+                
+                return output;
+            },
+            
+            // public method for decoding
+            decode : function (input) {
+                var output = "";
+                var chr1, chr2, chr3;
+                var enc1, enc2, enc3, enc4;
+                var i = 0;
+                
+                input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+                
+                while (i < input.length) {
+                    
+                    enc1 = this._keyStr.indexOf(input.charAt(i++));
+                    enc2 = this._keyStr.indexOf(input.charAt(i++));
+                    enc3 = this._keyStr.indexOf(input.charAt(i++));
+                    enc4 = this._keyStr.indexOf(input.charAt(i++));
+                    
+                    chr1 = (enc1 << 2) | (enc2 >> 4);
+                    chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+                    chr3 = ((enc3 & 3) << 6) | enc4;
+                    
+                    output = output + String.fromCharCode(chr1);
+                    
+                    if (enc3 != 64) {
+                        output = output + String.fromCharCode(chr2);
+                    }
+                    if (enc4 != 64) {
+                        output = output + String.fromCharCode(chr3);
+                    }
+                    
+                }
+                
+                output = Base64._utf8_decode(output);
+                
+                return output;
+                
+            },
+            
+            // private method for UTF-8 encoding
+            _utf8_encode : function (string) {
+                string = string.replace(/\r\n/g,"\n");
+                var utftext = "";
+                
+                for (var n = 0; n < string.length; n++) {
+                    
+                    var c = string.charCodeAt(n);
+                    
+                    if (c < 128) {
+                        utftext += String.fromCharCode(c);
+                    }
+                    else if((c > 127) && (c < 2048)) {
+                        utftext += String.fromCharCode((c >> 6) | 192);
+                        utftext += String.fromCharCode((c & 63) | 128);
+                    }
+                    else {
+                        utftext += String.fromCharCode((c >> 12) | 224);
+                        utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+                        utftext += String.fromCharCode((c & 63) | 128);
+                    }
+                    
+                }
+                
+                return utftext;
+            },
+            
+            // private method for UTF-8 decoding
+            _utf8_decode : function (utftext) {
+                var string = "";
+                var i = 0;
+                var c = c1 = c2 = 0;
+                
+                while ( i < utftext.length ) {
+                    
+                    c = utftext.charCodeAt(i);
+                    
+                    if (c < 128) {
+                        string += String.fromCharCode(c);
+                        i++;
+                    }
+                    else if((c > 191) && (c < 224)) {
+                        c2 = utftext.charCodeAt(i+1);
+                        string += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+                        i += 2;
+                    }
+                    else {
+                        c2 = utftext.charCodeAt(i+1);
+                        c3 = utftext.charCodeAt(i+2);
+                        string += String.fromCharCode(((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
+                        i += 3;
+                    }
+                    
+                }
+                
+                return string;
+            }
+            
+        }
+        function removeUnrequiredChar(data) {
+            var result = '';
+            for(var i=0;i<=data.length;i++) {
+                var mchar = data.charAt(i);
+                if(mchar == '"' || mchar == "," || mchar == "'" || mchar == ":" || mchar == "{" || mchar == "}" || mchar == "[" || mchar == "]") {
+                    result += mchar;
+                }
+                else if(mchar == '@' || mchar == "." || mchar == "(" || mchar == ")" || mchar == "-" || mchar == "_" || mchar == ";" || mchar == "/") {
+                    result += mchar;
+                }
+                else if(/^[a-z0-9]+$/i.test(mchar)) {
+                    result += mchar;
+                }
+            }
+            return result;
+        }
+        
+        function onLoad(){
+           //alert("sfgfg");
+           document.getElementById("heading").innerHTML = "<h2>" +  locale.message.text["authorizenet_redirect_message"] +  "</h2>";
+           document.getElementById("redirected").innerHTML = "" + locale.message.text["authorizenet_auto_redirect_message"] + "";
+            document.getElementById("authorize_clickhere").innerHTML = '<input type="button" value="'+ locale.message.button["click_here"]+'" style="width:100px" onclick="javascript:submit_form();">';
+	       
+            try {
+                var data=queryValue();
+                //console.log(data);
+                
+                data= Base64.decode(data);
+                data = removeUnrequiredChar(data);
+                data= JSON.parse(data);
+                console.log("Ready0");
+                
+                try {
+                    var url="https://test.authorize.net/gateway/transact.dll";
+                    if(data.mode == 1) {
+                        url="https://secure.authorize.net/gateway/transact.dll";
+                    }
+                }
+                catch(err) {
+                    //alert('New Erro : '+err.message);
+                }
+                //  alert("Ready1");
+                var loginID= data.loginID; //getPaymentInfo("authorizenet","payment_method_account_id");
+                var transactionKey= data.transactionKey; //getPaymentInfo("authorizenet","payment_method_account_key");
+                var email = data.email;//Session["email"];
+                var amount = data.total_amount;
+                var invoice=data.invoice;
+                var timeStamp= Math.round(new Date().getTime() / 1000) ;
+                var sequence="728";
+                 var currency_code = data.currency_code;
+                if(currency_code == "" || currency_code == null) {
+                    currency_code = 'USD';
+                }
+                // alert(loginID+" "+transactionKey+" "+email+" "+invoice);
+                try {
+                    var fingerprint = CryptoJS.HmacMD5(loginID + "^" + sequence + "^" + timeStamp + "^" + amount + "^"+currency_code, transactionKey);
+                }
+                catch(err) {
+                    //alert(err.message);
+                }
+                 var first_name=data.pay_bill.firstname;
+                var last_name=data.pay_bill.lastname;
+                var address=data.pay_bill.street;
+                var city=data.pay_bill.city;
+                var state=data.pay_bill.region;
+                var country=data.pay_bill.country;
+                var phone=data.pay_bill.phone;
+                var zipcode=data.pay_bill.postcode;
+                var cust_id=data.cust_id;
+                var shipamt ="Shipping Charge<|> <|>"+data.product_shipamt;
+                var rec_first_name=data.pay_shipp.firstname;
+                var rec_last_name=data.pay_shipp.lastname;
+                var ship_address=data.pay_shipp.street;
+                var ship_city=data.pay_shipp.city;
+                var ship_state=data.pay_shipp.region;
+                var ship_country=data.pay_shipp.country;
+                var ship_zipcode=data.pay_shipp.postcode;
+               
+                var authorize_return_url = data.authorize_return_url+"?service=authorizepaymentresponse&store=1&mofluid_order_id="+invoice;
+                var div_data = "<form method='post' action='"+url+"' name='paypal_form'><input type='hidden' name='x_login' value='"+loginID+"' /><input type='hidden' name='x_currency_code' value='"+currency_code+"' /><input type='hidden' name='x_amount' value='"+amount+"' /><input type='hidden' name='x_description' value='Payment Using Authorize .Net' /><input type='hidden' name='x_invoice_num' value='"+invoice+"' /><input type='hidden' name='x_fp_sequence' value='"+sequence+"' /><input type='hidden' name='x_fp_timestamp' value='"+timeStamp+"' /><input type='hidden' name='x_fp_hash' value='"+fingerprint+"' /><input type='hidden' name='x_test_request' value='false' /><input type='hidden' name='x_first_name' value='"+first_name+"' /><input type='hidden' name='x_last_name' value='"+last_name+"' /><input type='hidden' name='x_company' value='' /><input type='hidden' name='x_address' value='"+address+"' /><input type='hidden' name='x_city' value='"+city+"' /><input type='hidden' name='x_state' value='"+state+"' /><input type='hidden' name='x_country' value='"+country+"' /><input type='hidden' name='x_phone' value='"+phone+"' /><input type='hidden' name='x_zip' value='"+zipcode+"' /><input type='hidden' name='x_email' value='"+email+"' /><input type='hidden' name='x_cust_id' value='"+cust_id+"' /><input type='hidden' name='x_ship_to_first_name' value='"+rec_first_name+"' /><input type='hidden' name='x_ship_to_last_name' value='"+rec_last_name+"' /><input type='hidden' name='x_ship_to_company' value='' /><input type='hidden' name='x_ship_to_address' value='"+ship_address+"' /><input type='hidden' name='x_ship_to_city' value='"+ship_city+"' /><input type='hidden' name='x_ship_to_state' value='"+ship_state+"' /><input type='hidden' name='x_ship_to_country' value='"+ship_country+"' /><input type='hidden' name='x_ship_to_zip' value='"+ship_zipcode+"' /><input type='hidden' name='x_tax' value='"+shipamt+"' />\
+                <input type='hidden' name='x_receipt_link_method' value='POST'><input type='hidden' name='x_receipt_link_text' value='Return to Merchant Website'><input type='hidden' name='x_receipt_link_url' value='"+authorize_return_url+"'><input type='hidden' name='x_show_form' value='PAYMENT_FORM' /></form>";
+                document.getElementById('form_div').innerHTML= div_data;
+                
+            }
+            catch(err) {
+                console.log('Error : '+err.message);
+            }
+            document.forms['paypal_form'].submit();
+        }
+        
+        function submit_form(){
+            document.forms["paypal_form"].submit();
+        }
+        /*
+         *Function to get parameter from url
+         *@param: none
+         *@return: Data attach with url
+         */
+        function queryValue() {
+            var qrStr = window.location.search;
+            if (qrStr)
+            var qrvalue = (qrStr.split("?")[1].split("=")[1]);
+            return decodeURIComponent(qrvalue);
+        }
+        
+        
+        
+            </script>
+    </head>
+    <body onload="onLoad()">
+        <div data-role="page" id="mainPage">
+            <center><div id="heading"></div></center>
+            <center><img src="images/spin.gif"/></center>
+            <div id="form_div"></div>
+            <center><br/><br/><span id="redirected"></span><br/><br/>
+            <div id="authorize_clickhere"></div>
+                    </center>
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+</html>

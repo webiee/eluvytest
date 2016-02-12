@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height"/>
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript">
+            //   app.initialize();
+            </script>
+        <style>
+            .ui-content{
+                overflow-y:auto;
+            }
+        </style>
+        <script type="text/javascript" langauge="javascript">
+            
+            function onDeviceReady() {
+                document.addEventListener("deviceready", onLoad, false);
+            }
+        
+        
+        $(window).on("load resize orientationchange", function(){
+                     ScaleContentToDevice();
+                     
+                     });
+                     
+                     function onLoad(){
+                         checkLoginStatus();
+                         fetchStoredetail();
+                         $('#gbtn').hide();
+                        try
+                        {
+                        if(parseInt(localStorage[config.data[0].storage_key+'google_login_flag'])==1)
+                        {
+                            $('#gbtn').show();
+                        }
+                        else
+                        {
+                             $('#gbtn').hide();
+                        }
+                        }
+                        catch(e)
+                        {
+                             $('#gbtn').hide();
+                        }
+                         
+                         try {
+                             var MYSTORE = JSON.parse(localStorage[config.data[0].storage_key+"_STORE"]);
+                             document.title = MYSTORE["store"]["name"];
+                             $("#storelabel").html(MYSTORE["store"]["name"]);
+                         }
+                         catch (err) {
+                         }
+                        
+                         $("#mofluid_home_a").html(locale.message.button["home"]);
+                         $("#gplus").text(locale.message.text["google_login_text"]);
+                         $("#mofluid_myaccount_a").html(locale.message.button["my_account"]);
+                         $("#mofluid_editprofile_a").html(locale.message.button["edit_profile"]);
+                         $("#mofluid_myorders_a").html(locale.message.button["my_orders"]);
+                         $("#mofluid_signout_a").html(locale.message.button["sign_out"]);
+                         $("#mofluid_signin_a").html(locale.message.button["sign_in"]);
+                         $("#login_text").html(locale.message.button["login"]);
+                         $("#username").attr("placeholder", locale.message.text["email_address"]);
+                         $("#password").attr("placeholder", locale.message.text["password"]);
+                         $("#searchFilter").attr("placeholder",locale.message.text["search"]);
+                         $("#forgot_text").html(locale.message.button["forgot_password"]);
+                         $("#create_text").html(locale.message.button["create_an_account"]);
+                         $("#experience_text").html(locale.message.text["experience"]);
+                         $("#support").html(locale.message.text["support_text"]);
+                         $("#policies").html(locale.message.text["policy_text"]);
+                         $("#loginbutton_div").html('  <input type="submit" data-role="button" data-theme="b" id="loginbutton" name="loginbutton" value="'+ locale.message.button["login"]+'"  /> ');
+                         $("#loginbutton_div").trigger("create");
+                         $("#showhide").html(locale.message.text["show_password"]);
+                         var redirect_forgotpassword_page = "redirectTopage(\'forgotpassword.html\');";
+                         $("#buttonLeft").html('  <input type="button" data-role="button" data-theme="c" id="forgetbutton" name="forgetbutton" value="'+ locale.message.button["forgot_password"]+'"  onclick="' + redirect_forgotpassword_page + '"/> ');
+                         $("#buttonLeft").trigger("create");
+                         
+                         var redirect_register_page = "redirectTopage(\'register.html\');";
+                         $("#buttonRight").html('  <input type="button" data-role="button" data-theme="c" id="registerbutton" name="registerbutton" value="'+ locale.message.button["create_an_account"]+'" class="ui-btn-right" onclick= "' + redirect_register_page + '" /> ');
+                         $("#buttonRight").trigger("create");
+                         getFooter();
+                     }
+        
+        function submitform() {
+            var username = $("#username").val();
+            var password = $("#password").val();
+            if(username == "") {
+                if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                    navigator.notification.alert(locale.message.alert["username_validation_for_blank"],function () {}, config.data[0].app_name, locale.message.button["close"]);
+                }
+                else
+                {
+                    alert(locale.message.alert["username_validation_for_blank"]);
+                }
+            }
+            else if(!checkEmail(username)) {
+                if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                    navigator.notification.alert(locale.message.alert["username_validation_for_wrong_attempt"],function () {}, config.data[0].app_name, locale.message.button["close"]);
+                }
+                else {
+                    alert(locale.message.alert["username_validation_for_wrong_attempt"]);
+                }
+            }
+            else if(password.length<6) {
+                if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                    navigator.notification.alert(locale.message.alert["password_validation_for_minimum_length"],function () {}, config.data[0].app_name, locale.message.button["close"]);
+                }
+                else {
+                    alert(locale.message.alert["password_validation_for_minimum_length"]);
+                }
+            }
+            else {
+                $("#loginbutton_div").html('<center><img src="images/spin.gif"></center>');
+                var BASE_URL  = config.data[0].baseurl;
+                var STORE = config.data[0].storeid;
+                $.getJSON(""+BASE_URL+"?callback=?"+"&store="+STORE+"&service=verifylogin"+"&username="+username+"&password="+Base64.encode(password),
+                          function (response) {
+                          if(response["login_status"] == "0") {
+                          if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                          navigator.notification.alert(locale.message.alert["invalid_username__password_message"],function () {}, config.data[0].app_name, locale.message.button["close"]);
+                          }
+                          else {
+                          alert(locale.message.alert["invalid_username__password_message"]);
+                          }
+                          $("#loginbutton_div").html('<input type="submit" data-role="button" data-theme="b" id="loginbutton" name="loginbutton" value="Login" />');
+                          $("#loginbutton_div").trigger('create');
+                          }
+                          else if(response["login_status"] == "1") {
+                          localStorage[config.data[0].storage_key+"_Loginemail"]=username;
+                          loginStart(response["id"], response["firstname"], response["lastname"], response["username"], response["password"]);
+                          if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                          //navigator.notification.alert(locale.message.alert["login_success_message"] + response["firstname"],function () {}, config.data[0].app_name, locale.message.button["close"]);
+                          navigator.notification.alert(locale.message.alert["login_success_message"].replace("{{username}}",response["firstname"]),function () {}, config.data[0].app_name, locale.message.button["close"]);
+                          //locale.message.alert["login_success_message"].replace("{{username}}",response["firstname"])
+                          }
+                          else
+                          {
+                          alert(locale.message.alert["login_success_message"].replace("{{username}}",response["firstname"]));
+                          }
+                          if(localStorage[config.data[0].storage_key+"_nextpage"] == null || localStorage[config.data[0].storage_key+"_nextpage"] == "null") {
+                          redirectTopage('index.html');
+                          }
+                          else {
+                          var dirPath = dirname(location.href);
+                          var fullPath = dirPath +"/"+localStorage[config.data[0].storage_key+"_nextpage"];
+                          localStorage[config.data[0].storage_key+"_nextpage"] = null;
+                          window.location=fullPath;
+                          }
+                          }
+                          else {
+                          if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                          navigator.notification.alert(locale.message.alert["server_not_responding"] ,function () {}, config.data[0].app_name, locale.message.button["close"]);
+                          }
+                          else {
+                          alert(locale.message.alert["server_not_responding"]);
+                          }
+                          }
+                          });
+            }
+        }
+        
+        function showHideDiv1(id){
+            var obj = document.getElementById(id);
+            if (obj.style.display=="none"){
+                obj.style.display='block';
+            } else if(obj.style.display=="block"){
+                obj.style.display='none';
+            }
+        }
+        
+        function loginwithgoogleplus(){
+            
+            $.mobile.loading("show");
+            window.plugins.googleplus.login(
+                                            {
+                                            
+                                            //                'iOSApiKey': '1023449514409-9m2nv4sdecqqlopv5cn58gr645kepb4b.apps.googleusercontent.com'
+                                            'iOSApiKey': localStorage[config.data[0].storage_key+'google_ios_clientid']
+                                            // there is no API key for Android; you app is wired to the Google+ API by listing your package name in the google dev console and signing your apk (which you have done in chapter 4)
+                                            },
+                                            function (obj) {
+                                            
+                                            var userdetail = {};
+                                            userdetail["firstname"] = "";
+                                            userdetail["lastname"] = "";
+                                            if(obj.displayName){
+                                            var res = obj.displayName.split(" ");
+                                            userdetail["firstname"] = res[0];
+                                            userdetail["lastname"] = res[1];
+                                            }
+                                            
+                                            userdetail["email"] = obj.email;
+                                            loginwithsocial_method(userdetail);
+                                            },
+                                            function (msg) {
+                                            if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                                            navigator.notification.alert(locale.message.alert["server_not_responding"] ,function () {}, config.data[0].app_name, locale.message.button["close"]);
+                                            }
+                                            else {
+                                            alert(locale.message.alert["server_not_responding"]);
+                                            }
+                                            }
+                                            );
+        }
+        
+        
+        function loginwithsocial_method(obj){
+            $.mobile.loading("show");
+            var BASE_URL  = config.data[0].baseurl;
+            var STORE = config.data[0].storeid;
+            $.getJSON(BASE_URL+"?callback=?"+"&store="+STORE+"&service=loginwithsocial"+"&username="+obj.email+"&firstname="+obj.firstname+"&lastname="+obj.lastname,
+                      function(response){
+                      $.mobile.loading("hide");
+                      if(response["login_status"] == "0") {
+                      if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                      navigator.notification.alert("Sorry Account associated " ,function () {}, config.data[0].app_name, locale.message.button["close"]);
+                      }
+                      else {
+                      alert(locale.message.alert["server_not_responding"]);
+                      }
+                      $("#loginbutton_div").html('<input type="submit" data-role="button" data-theme="b" id="loginbutton" name="loginbutton" value="Login" />');
+                      $("#loginbutton_div").trigger('create');
+                      }
+                      else if(response["login_status"] == "1") {
+                      localStorage[config.data[0].storage_key+"_Loginemail"]=username;
+                      if(response["firstname"] == null)
+                      response["firstname"] = "";
+                      loginStart(response["id"], response["firstname"], response["lastname"], response["username"], response["password"]);
+                      if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                      navigator.notification.alert(locale.message.alert["login_success_message"].replace("{{username}}",response["firstname"]),function () {}, config.data[0].app_name, locale.message.button["close"]);
+                      }
+                      else{
+                      alert(locale.message.alert["login_success_message"].replace("{{username}}",response["firstname"]));
+                      }
+                      var if_wishlist = getParameterByName("wish_pro_id");
+                      if(if_wishlist != "" && if_wishlist != null){
+                      wishlist.add(if_wishlist);
+                      }
+                      else{
+                      if(localStorage[config.data[0].storage_key+"_nextpage"] == null || localStorage[config.data[0].storage_key+"_nextpage"] == "null") {
+                      redirectTopage('index.html');
+                      }
+                      else {
+                      var dirPath = dirname(location.href);
+                      var fullPath = dirPath +"/"+localStorage[config.data[0].storage_key+"_nextpage"];
+                      localStorage[config.data[0].storage_key+"_nextpage"] = null;
+                      window.location=fullPath;
+                      }
+                      }
+                      }
+                      else {
+                      if (config.data[0].platform=='ios' || config.data[0].platform=='android'){
+                      navigator.notification.alert(locale.message.alert["server_not_responding"] ,function () {}, config.data[0].app_name, locale.message.button["close"]);
+                      }
+                      else {
+                      alert(locale.message.alert["server_not_responding"]);
+                      }
+                      }
+                      }
+                      );
+        }
+        
+        localStorage.setItem('foo', 0);
+            </script>
+    </head>
+    <body onLoad="onDeviceReady()">
+        <div data-role="page" id="mainpage" >
+            
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                <div class="navigation_button">
+                    <a href="#" class="fa fa-angle-left fa" onclick="back_click_new()">
+                    </a>
+                </div>
+                <div class="navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                <div class="navigation_logo" align="center">
+                    <a href="javascript:void(0);">
+                        <img  class="logo_icon" src="images/spin.gif" style="width:30px;height:30px;"/>
+                    </a>
+                </div>
+                
+                <!---<div class="cart_search_container">
+                 <div class="navigation_cart">
+                 <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                 <img  class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                 <div class="cartamount">
+                 <div class="cartNew" id="cartProducts">0</div>
+                 </div>
+                 </a>
+                 </div>
+                 
+                 
+                 <div class="navigation_search">
+                 <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon"></a>
+                 </div>
+                 </div>-->
+                
+                
+                <div class="clear"></div>
+                
+                
+                
+                
+                <div id="push-header" style="display:none">
+                    <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: #e5e5e5;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                    <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+                </div>
+            </div>
+            
+            <div data-role="content">
+                <div class="clear"></div>
+                
+                <div id="searchBox" class="searchbox" style="display:none;">
+                    <form name="serachForm" action="javascript:custom_search();">
+                        <div>
+                            <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                            <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="content_outer">
+                    <div class="content_inner">
+                        
+                        
+                        
+                        <!--div class="login_box"> </div-->
+                        <div id ="login_text" class="login_box1">  </div>
+                        <div id ="experience_text" class="login_box2"> </div>
+                        <!-- <div id="banner_slider">
+                         
+                         </div>-->
+                        
+                        
+                        <div id="loginbox" class="loginbox" align="center">
+                            <form action="javascript:submitform();">
+                                <input type="text" id="username" name="username" placeholder=""class ="mytext" />
+                                <div class="error_msg hidediv">Please enter your username</div>
+                                
+                                <div class="spacee"></div>
+                                
+                                <input type="password" id="password" name="password" placeholder=""class ="mytext2" />
+                                <div class="error_msg hidediv">Please enter your password</div>
+                                
+                                <div class="login_box5">
+                                    <input id="my-checkbox2" type="checkbox" data-inline="false" data-corners="false" onChange="toggle_password('password', 'my-checkbox2')">
+                                        <label for="my-checkbox2" id="showhide">
+                                        </label>
+                                        
+                                        </div>
+                                
+                                <div id="loginbutton_div">
+                                    
+                                    <!--<input type="submit" data-role="button" data-theme="b" id="loginbutton" name="loginbutton" value=""  />-->
+                                </div>
+                                <div class="space"></div>
+                                <div class="login_box6">
+                                    <a id="forgot_text" class="ui-link" data-transition="slide" href="#" onclick="redirectTopage('forgotpassword.html');"></a>
+                                    <span class="login_box6_space">|</span>
+                                    <a id="create_text" class="ui-link" data-transition="slide" href="#" onclick="redirectTopage('register.html');" ></a>
+                                </div>
+                                <!-- <div  class="buttonLeft" id="buttonLeft">
+                                 <input type="button" data-role="button" data-theme="c" id="forgetbutton" name="forgetbutton" value="Forget Password"  onclick="redirectTopage('forgotpassword.html');"/>
+                                 </div>
+                                 <div  class="buttonRight" id="buttonRight">
+                                 <input type="button" data-role="button" data-theme="c" id="registerbutton" name="registerbutton" value="Create An Account" class="ui-btn-right" onclick="redirectTopage('register.html');"/>
+                                 </div> -->
+                            </form>
+                            
+                            
+                        </div>
+                        
+                        <div class="social_media_login_block">
+                            
+                            <div class="social-btn-div" id="gbtn"> 
+                                <a href="javascript:loginwithgoogleplus()" class="social-btn google-btn"/ id="gplus"></a>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                
+                <div class="clear"></div>
+                
+                
+                
+                
+            </div>
+            
+            <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+            </div>
+            
+            
+            <nav class="pushy pushy-left">
+                <div id="Cate_slide">
+                </div>
+            </nav>
+            <!-- Site Overlay -->
+            <div class="site-overlay"></div>
+            
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+</html>

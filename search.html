@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height"/>
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript">
+            app.initialize();
+        </script>
+        <script type="text/javascript">
+            var loading="true";
+            var _top = $(window).scrollTop();
+            var _direction;
+            var page = 1;
+            var product_count=1;
+            var sorttype = "";
+            var sortorder = "";
+            var search_data = "";
+            var app_curr_code = config.data[0].app_currency;
+            var app_curr_symbol = config.data[0].app_curr_symbol;
+            /*
+             *Function call on load page
+             *@param
+             *@return
+             */
+        /*
+         *Function call on load page
+         *@param
+         *@return
+         */
+        function onLoad() {
+            checkLoginStatus();
+         
+         if(localStorage.getItem('foo') == 1){
+             $("#sorting_div").show();
+            
+             $("#p3").html(locale.message.text["name_sort_type_a_z_"]);
+             $("#p4").html(locale.message.text["name_sort_type_z_a_"]);
+             $("#p5").html(locale.message.text["price_sort_type_low__high"]);
+             $("#p6").html(locale.message.text["price_sort_type_high__low"]);
+             var searchproductList=localStorage.getItem(config.data[0].storage_key+'_searchdata');
+             $("#sel-sortType").selectmenu("refresh",true);
+             $("#category").html(searchproductList);
+             $("#category").trigger("create");
+             localStorage.setItem('foo',0);
+             getFooter();
+             
+            
+         }
+         else
+         {
+         
+         try {
+					var MYSTORE = JSON.parse(localStorage[config.data[0].storage_key+"_STORE"]);
+					document.title = MYSTORE["store"]["name"];
+					$("#storelabel").html(MYSTORE["store"]["name"]);
+ 				 }
+                      catch (err) {
+                      }
+            search_data=getParameterByName('search-data');
+            search_data=Base64.decode(search_data);
+            var search_display_msg = locale.message.text["search_result_text"].replace("{{searchstring}}",search_data);
+            search_display_msg = search_display_msg.replace("{{serachstring}}",search_data);
+            $("#searchmsg").html(search_display_msg);
+            sorttype = $("#sel-sortType").val();
+            sortorder = $("#sel-sortType  :selected").attr("rel");
+            
+            
+            
+            $("#mofluid_home_a").html(locale.message.button["home"]);
+            $("#mofluid_myaccount_a").html(locale.message.button["my_account"]);
+            $("#mofluid_editprofile_a").html(locale.message.button["edit_profile"]);
+            $("#mofluid_myorders_a").html(locale.message.button["my_orders"]);
+            $("#mofluid_signout_a").html(locale.message.button["sign_out"]);
+            $("#mofluid_signin_a").html(locale.message.button["sign_in"]);
+             $("#p3").html(locale.message.text["name_sort_type_a_z_"]);
+                $("#p3").trigger("change");
+                $("#p4").html(locale.message.text["name_sort_type_z_a_"]);
+                $("#p5").html(locale.message.text["price_sort_type_low__high"]);
+                $("#p6").html(locale.message.text["price_sort_type_high__low"]);
+                
+             $("#searchFilter").attr("placeholder",locale.message.text["search"]);
+
+        getFooter();
+         }
+         
+        }
+        
+        
+        /*
+         *Function to implement pagination
+         *@param
+         *return
+         */
+        
+        $(document).scroll(function(){
+            var _cur_top = $(window).scrollTop();
+            if(_top < _cur_top){
+                _direction = 'down';
+                if ($(window).scrollTop() >= $(document).height() - $(window).height() - 100) {
+                    //End of page, load next content here
+                    if (loading){
+                        loadNextPage();
+                    }
+                }
+            }
+            else{
+                _direction = 'up';
+            }
+            console.log(_direction);
+            _top = _cur_top;
+        });
+                         
+         //Load content for next page
+         function loadNextPage() {
+             
+             showSeachdata(++page,search_data);
+         }
+        function showSeachdata(page,search_data){
+            //$("#search-product").val(search_data);
+            $(".ui-loader").show();
+           var BASE_URL  = config.data[0].baseurl;
+            var STORE = config.data[0].storeid;
+            
+            $.getJSON(""+BASE_URL+"?callback=?"+"&store="+STORE+"&search_data="+search_data+"&service=search&currentpage="+page+"&pagesize=20&sorttype="+sorttype+"&sortorder="+sortorder+"&currency="+app_curr_code,
+                function (response) {
+                    $("#loader_div").hide();
+                    if(product_count>response.total ){
+                        if(response.total == "0"){
+                            //$("#category").html("<div style='height:40px;padding-top:80px; padding-left:20px;'> No such product found.</div>");
+                            $("#category").html("<div style='padding-top:80px; padding-left:20px;'>"+locale.message.text["no_search_result_found"]+"</div>");
+                                $("#sorting_div").hide();
+                        }
+                        loading = false;
+                        $(".ui-loader").hide();
+                    }
+                    else{
+                        loading = true;
+                        $(".ui-loader").hide();
+                        results = response.data;
+                        var productList='';
+                        var i=0;
+                        while(i < results.length){
+                        $("#sorting_div").show();
+                        var productName = results[i]["name"];
+                        var pid = results[i]["id"];
+                        var price = results[i]["price"];
+                        price=CurrencyFormatted(price);
+                        price=addThousandsSeparator(price);
+                        var imageURL = results[i]["imageurl"];
+                        var SKU = results[i]["sku"];
+                        var sprice = results[i]["spclprice"];
+                        sprice=CurrencyFormatted(sprice);
+                                    sprice=addThousandsSeparator(sprice);
+                                    if(sprice == price) {
+                                        sprice = 0;
+                                        results[i]["spclprice"] = 0;
+                                    }
+                        var dirPath = dirname(location.href);
+                        var product_type = results[i]["type"];
+                        var hasoptions = results[i]["hasoptions"];
+                        var is_stock = '';
+                        if(parseInt(results[i]["is_in_stock"])>0 && results[i]["stock_quantity"] >0) {
+                            is_stock = locale.message.text["in_stock"];
+                            stock_status = "1";
+                        }
+                        else {
+                            is_stock = locale.message.text["out_of_stock"];
+                            stock_status = "0";
+                        }
+                        var fullPath = "'"+dirPath + "/product_details.html?id=" + pid +"stock_status"+stock_status+ "'";
+                         var spc_price = parseFloat(results[i]["spclprice"]).toFixed(2);
+                        if(product_type == "simple" && hasoptions == 0) {
+                            if (stock_status == "1") {
+                                if(results[i]["spclprice"]>0) {
+                                	productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="product_name_div product_price_color"><div style="text-decoration: line-through;" class="spl-price product_special_cut_price_color">'+app_curr_symbol+price+'</div><div style="font-weight:bold;float:right"> '+app_curr_symbol+spc_price+'</div></div><div style="width:100%"><div class="detail_div secondary_btn_foreground" id="details" ><input type="button" data-theme="c" class="secondary_btn_background"   value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div><div class="cart_div primary_btn_foreground" id="cart" ><input type="button" data-theme="b" class="primary_btn_background" value="'+locale.message.button["add_to_cart"]+'" onclick="addDirectToCart('+pid+','+stock_status+')" /></div></div></div></div>';
+                            	}
+                                else {
+                                	productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="product_name_div product_price_color">'+app_curr_symbol+price+'</div><div style="width:100%"><div class="detail_div secondary_btn_foreground" id="details" ><input type="button" data-theme="c" class="secondary_btn_background"   value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"/></div><div class="cart_div primary_btn_foreground" id="cart" ><input type="button" data-theme="b" class="primary_btn_background" value="'+locale.message.button["add_to_cart"]+'" onclick="addDirectToCart('+pid+','+stock_status+')" /></div></div></div></div>';
+                            	}
+                            }
+                            else {
+                            	if(results[i]["spclprice"]>0) {
+                                	productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="product_name_div product_price_color"><div style="text-decoration: line-through;" class="spl-price product_special_cut_price_color">'+app_curr_symbol+price+'</div><div style="font-weight:bold;float:right"> '+app_curr_symbol+spc_price+'</div></div><div style="width:100%"><div class="detail_div secondary_btn_foreground" id="details"><input type="button" data-theme="c" class="secondary_btn_background" value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div><div class="cart_div primary_btn_foreground" id="cart" ><input type="button" data-theme="b" class="primary_btn_background" value="'+locale.message.button["add_to_cart"]+'" onclick="addDirectToCart('+pid+','+stock_status+')" />                                    </div></div></div></div>';
+                            	}
+                                else {
+                                	productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="product_name_div product_price_color">'+app_curr_symbol+price+'</div><div style="width:100%"><div class="detail_div secondary_btn_foreground" id="details"><input type="button" data-theme="c" class="secondary_btn_background" value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div><div class="cart_div primary_btn_foreground" id="cart" ><input type="button" data-theme="b" class="primary_btn_background" value="'+locale.message.button["add_to_cart"]+'" onclick="addDirectToCart('+pid+','+stock_status+')" />                                    </div></div></div></div>';
+                            	}
+                            }
+                        }
+                      else if(product_type == "grouped" && hasoptions == 0){
+                      
+                      if (stock_status == "1") {
+                      if(sprice > 0 && sprice < price) {
+                      productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="parent.location=' + fullPath + '"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="starting_text">'+locale.message.text["starting_at"]+'</div><div class="product_name_div product_price_color"><div style="text-decoration: line-through;" class="spl-price product_special_cut_price_color">'+app_curr_symbol+price+'</div><div style="font-weight:bold;float:right"> '+app_curr_symbol+sprice+'</div></div><div style="width:100%"><div class="detail_div secondary_btn_foreground" id="details"><input type="button" data-theme="c" class="secondary_btn_background" value='+ locale.message.button["details"] +' onclick="parent.location=' + fullPath + '" /></div><div class="cart_div primary_btn_foreground" id="cart" ><input type="button" data-theme="b" class="primary_btn_background" value="'+locale.message.button["add_to_cart"]+'" onclick="addDirectToCart('+pid+','+stock_status+')" />                                    </div></div></div></div>';
+                      }
+                      else {
+                      productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="parent.location=' + fullPath + '"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="starting_text">'+locale.message.text["starting_at"]+'</div><div class="product_name_div product_price_color">'+app_curr_symbol+price+'</div><div style="width:100%"><div class="detail_div secondary_btn_foreground" id="details"><input type="button" data-theme="c" class="secondary_btn_background" value='+ locale.message.button["details"] +' onclick="parent.location=' + fullPath + '" /></div><div class="cart_div primary_btn_foreground" id="cart" ><input type="button" data-theme="b" class="primary_btn_background" value="'+locale.message.button["add_to_cart"]+'" onclick="addDirectToCart('+pid+','+stock_status+')" />                                    </div></div></div></div>';
+                      }
+                      }
+                      else {
+                      if(results[i]["spclprice"]>0) {
+                      productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="starting_text">'+locale.message.text["starting_at"]+'</div><div class="product_name_div product_price_color"><div style="text-decoration: line-through;" class="spl-price product_special_cut_price_color">'+app_curr_symbol+price+'</div><div style="font-weight:bold;float:right"> '+app_curr_symbol+results[i]["spclprice"]+'</div></div><div style="width:100%"><div class="detail_div secondary_btn_foreground" id="details"><input type="button" data-theme="c" class="secondary_btn_background" value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div><div class="cart_div primary_btn_foreground" id="cart" ><input type="button" data-theme="b" class="primary_btn_background" value="'+locale.message.button["add_to_cart"]+'" onclick="addDirectToCart('+pid+','+stock_status+')" />                                    </div></div></div></div>';
+                      }
+                      else {
+                      productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="starting_text">'+locale.message.text["starting_at"]+'</div><div class="product_name_div product_price_color">'+app_curr_symbol+price+'</div><div style="width:100%"><div class="detail_div secondary_btn_foreground" id="details"><input type="button" data-theme="c" class="secondary_btn_background" value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div><div class="cart_div primary_btn_foreground" id="cart" ><input type="button" data-theme="b" class="primary_btn_background" value="'+locale.message.button["add_to_cart"]+'" onclick="addDirectToCart('+pid+','+stock_status+')" />                                    </div></div></div></div>';
+                      }
+                      }
+                      }
+ 						else if(product_type == "configurable" || hasoptions == 1){
+                            if (stock_status == "1") {
+                                if(results[i]["spclprice"]>0) {
+                                	productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="product_name_div product_price_color"><div style="text-decoration: line-through;" class="spl-price product_special_cut_price_color">'+app_curr_symbol+price+'</div><div style="font-weight:bold;float:right"> '+app_curr_symbol+spc_price+'</div></div><div style="width:100%"><div class="detail_div configurable_product secondary_btn_foreground" id="details"><input type="button" class="secondary_btn_background" data-theme="c" value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div></div></div></div>';
+                            	}
+                                else {
+                                	productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="product_name_div product_price_color">'+app_curr_symbol+price+'</div><div style="width:100%"><div class="detail_div configurable_product secondary_btn_foreground" id="details"><input type="button" class="secondary_btn_background" data-theme="c" value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div></div></div></div>';
+                            	}
+                            }
+                            else {
+                            	if(results[i]["spclprice"]>0) {
+                                	productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="product_name_div product_price_color"><div style="text-decoration: line-through;" class="spl-price product_special_cut_price_color">'+app_curr_symbol+price+'</div><div style="font-weight:bold;float:right"> '+app_curr_symbol+spc_price+'</div></div><div style="width:100%"><div class="detail_div configurable_product secondary_btn_foreground"  id="details"><input type="button" data-theme="c" class="secondary_btn_background" value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div></div></div></div>';
+                            	}
+                                else {
+                                	productList += '<div class="product_outer_div"><div class="product_inner_div"><div class="product_img_container"  onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')"><div class="pro_img_outer"><div class="pro_img_inner"><img src="'+imageURL+'" class="product_main_img" onerror="bad_image(this);"/></div></div></div><div class="product_name_div">'+productName+'</div><div class="product_name_div product_price_color">'+app_curr_symbol+price+'</div><div style="width:100%"><div class="detail_div configurable_product secondary_btn_foreground"  id="details"><input type="button" data-theme="c" class="secondary_btn_background" value='+ locale.message.button["details"] +' onclick="getProDetail('+pid+','+stock_status+',\''+product_type+'\')" /></div></div></div></div>';
+                            	}
+                            }
+                        }
+                        i++;
+                        product_count++;
+                        }
+                      localStorage.setItem(config.data[0].storage_key+'_searchdata',productList);
+                       localStorage.setItem('foo' , 0);
+                         if(page<=1 && productList !="") {
+                      
+                            $("#category").html(productList);
+                        }
+                        else {
+                            $("#category").append(productList);
+                        }
+                        $("#category").trigger("create");
+                    }
+                });
+            }
+
+
+        /*
+         *Function call to preview image
+         *@param
+         *@return
+         */
+        function display_img_preview(){
+            var PRODUCT_ID = queryValue();
+            var dirPath = dirname(location.href);
+            var fullPath = dirPath + "/product_img_view.html?id="+PRODUCT_ID;
+            window.location=fullPath;
+        }
+        /*
+         *Function call to go login
+         *@param
+         *@return
+         */
+        function gotoLogin() {
+            var PRODUCT_ID = queryValue();
+            var next = "product_details.html?id="+PRODUCT_ID;
+            goLogin(next);
+        }
+        
+        function sortType(){
+            sorttype = $("#sel-sortType").val();
+            sortorder = $("#sel-sortType  :selected").attr("rel");
+            $("#category").html("");
+            product_count=1;
+            total_listed_product = 0;
+            page=1;
+            showSeachdata(1,search_data);
+        }
+        function showHideDiv1(id){
+  var obj = document.getElementById(id);
+    if (obj.style.display=="none"){
+      obj.style.display='block';
+    } else if(obj.style.display=="block"){
+      obj.style.display='none';
+    }
+}
+       //  $("#sorting_div").show();
+//localStorage.setItem('foo', 0);
+        </script>
+    </head>
+    <body onLoad="onLoad()">
+        <div data-role="page" id="mainpage" >
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                <div class="navigation_button">
+                    <a href="#" class="fa fa-angle-left fa" onclick="back_click_new();">
+                    </a>
+                </div>
+                <div class="navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                <div class="navigation_logo" align="center">
+                    <a href="javascript:void(0);">
+                     <img  class="logo_icon" src="images/spin.gif" style="width:30px;height:30px;"/>
+                    </a>
+                </div>
+                
+                <!--<div class="cart_search_container">
+                    <div class="navigation_cart">
+                        <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                            <img  class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                            <div class="cartamount">
+                                <div class="cartNew" id="cartProducts">0</div>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    
+                    <div class="navigation_search">
+                        <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon"></a>
+                    </div>
+                </div>-->
+                
+                
+                <div class="clear"></div>
+                
+
+
+            <div id="push-header" style="display:none">
+                   <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: #e5e5e5;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                   <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+               </div></div>
+            
+            <div data-role="content">
+				
+                <div class="clear"></div>
+                
+                <div id="searchBox" class="searchbox" style="display:none;">
+                    <form name="serachForm" action="javascript:custom_search();">
+                        <div>
+                            <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                            <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                
+                <div id="searchmsg" style="padding:1em;"></div>
+                
+                <div id="sorting_div" class="categoryy">
+                     <select name="sel-sortType" class="choose-btn" data-mini="true" id="sel-sortType" onChange="sortType();">
+                        <option selected value="name" rel="asc" id="p3"> </option>
+                        <option value="name" rel="desc" id="p4"> </option>
+                        <option value="price" rel="asc" id="p5"> </option>
+                        <option value="price" rel="desc" id="p6"> </option>
+                    </select>
+                </div>
+                <div id="category" class="category" align="center" style="margin-top:20px;">
+                    <div id="loader_div">
+                        
+                    </div>
+                </div>
+                
+                <div class="clear"></div>
+                
+                
+
+
+            </div>
+            <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+            </div>
+            <nav class="pushy pushy-left">
+                <div id="Cate_slide">
+                </div>
+            </nav>
+            <!-- Site Overlay -->
+            <div class="site-overlay"></div>
+
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+</html>

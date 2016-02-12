@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height"/>
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript">
+            app.initialize();
+            </script>
+        <script type="text/javascript" langauge="javascript">
+            function onLoad(){
+				$(".ui-loader").show();
+				$('#default_bill_ship_label h3').html(locale.message.text["My_Account"]);
+                checkLoginStatus();
+               // verify_session();
+                $("#mofluid_home_a").html(locale.message.button["home"]); 
+                $("#mofluid_myaccount_a").html(locale.message.button["my_account"]);
+                $("#mofluid_editprofile_a").html(locale.message.button["edit_profile"]);
+                $("#mofluid_myorders_a").html(locale.message.button["my_orders"]);
+                $("#mofluid_signout_a").html(locale.message.button["sign_out"]);
+                $("#mofluid_signin_a").html(locale.message.button["sign_in"]);
+                $("#changePassword_button").html('<input type="button" id="change_password_button" data-role="button" value="'+locale.message.button["change_password"]+'" data-theme="c" onclick="redirectTopage(\'changepassword.html\');"/>');
+                $("#changePassword_button").trigger("create");
+                
+                $(".edit_button").html(locale.message.text["edit"]);
+                
+                
+                
+                 $("#searchFilter").attr("placeholder",locale.message.text["search"]);
+
+                try {
+                    var MYSTORE = JSON.parse(localStorage[config.data[0].storage_key+"_STORE"]);
+                    document.title = MYSTORE["store"]["name"];
+                    $("#storelabel").html(MYSTORE["store"]["name"]);
+                } catch(err) {
+                    console.log(err.message);
+                }
+                var BASE_URL  = config.data[0].baseurl;
+                var STORE = config.data[0].storeid;
+                var Session = JSON.parse(localStorage[config.data[0].storage_key+'_Session']);
+                var customerid = Session["customer_id"];
+                $.getJSON(""+BASE_URL+"?callback=?"+"&store="+STORE+"&service=myprofile&customerid="+customerid,
+                          function (response) {
+                          var cust_name = locale.message.text["full_name"] + ' : ' +response["CustomerInfo"]["firstname"]+" "+response["CustomerInfo"]["lastname"];
+                          var cust_email = locale.message.text["email_address"] + ' : ' +response["CustomerInfo"]["email"];
+                          var cust_member_since = locale.message.text["member_since"] + ' : ' +response["CustomerInfo"]["membersince"];
+                          $('#default_bill_address h3').html(locale.message.text["billing_address"]);
+						  $('#default_shipp_address h3').html(locale.message.text["shipping_address"]);
+                          $("#ac_name").html(cust_name);
+                          $("#ac_email").html(cust_email);
+                          $("#ac_member_since").html(cust_member_since);
+                          var cust_bill_firstname, cust_bill_lastname, cust_bill_contact_no, cust_bill_city, cust_bill_country, cust_bill_pincode, cust_bill_street, cust_bill_region, cust_bill_company;
+                          var shipp_bill_firstname, shipp_bill_lastname, shipp_bill_contact_no, shipp_bill_city, shipp_bill_country, shipp_bill_pincode, shipp_bill_street, shipp_bill_region, shipp_bill_company;
+                          cust_bill_firstname = response["BillingAddress"]["firstname"];
+                          cust_bill_lastname = response["BillingAddress"]["lastname"];
+                          cust_bill_contact_no = response["BillingAddress"]["contactno"];
+                          cust_bill_city = response["BillingAddress"]["city"];
+                          cust_bill_country = response["BillingAddress"]["countryid"];
+                          cust_bill_pincode = response["BillingAddress"]["pincode"];
+                          cust_bill_street = response["BillingAddress"]["street"];
+                          cust_bill_region = response["BillingAddress"]["region"];
+                          cust_bill_company = response["BillingAddress"]["company"];
+                          cust_shipp_firstname = response["ShippingAddress"]["firstname"];
+                          cust_shipp_lastname = response["ShippingAddress"]["lastname"];
+                          cust_shipp_contact_no = response["ShippingAddress"]["contactno"];
+                          cust_shipp_city = response["ShippingAddress"]["city"];
+                          cust_shipp_country = response["ShippingAddress"]["countryid"];
+                          cust_shipp_pincode = response["ShippingAddress"]["pincode"];
+                          cust_shipp_street = response["ShippingAddress"]["street"];
+                          cust_shipp_region = response["ShippingAddress"]["region"];
+                          cust_shipp_company = response["ShippingAddress"]["company"];
+                          if(cust_bill_contact_no == null || cust_bill_contact_no == "") {
+                          $("#ac_contact_no_row").css("display","none");
+                          $("#cust_bill_contact_row").css("display","none");
+                          }
+                          else {
+                          $("#ac_contact_no").html(locale.message.text["contact_no"] + ' : ' +cust_bill_contact_no);
+                          $("#cust_bill_contact_no").html("Ph "+cust_bill_contact_no);
+                          }
+                          if(cust_bill_firstname == null || cust_bill_firstname == "")
+                          $("#cust_bill_name").html(locale.message.text["no_default_billing_address_found"]);
+                          else{
+                          if(cust_bill_lastname==""||cust_bill_lastname==null){
+                          cust_bill_lastname='';
+                          $("#cust_bill_name").html(cust_bill_firstname+" "+cust_bill_lastname);
+                          }
+                          else
+                          $("#cust_bill_name").html(cust_bill_firstname+" "+cust_bill_lastname);
+                          }
+                          if(cust_bill_company == null || cust_bill_company == "")
+                          $("#cust_bill_company_row").css("display","none");
+                          else
+                          $("#cust_bill_company").html(cust_bill_company);
+                          if(cust_bill_street == null || cust_bill_street == "")
+                          $("#cust_bill_street_row").css("display","none");
+                          else
+                          $("#cust_bill_street").html(cust_bill_street);
+                          
+                          if(cust_bill_city == null || cust_bill_city == ""){
+							  cust_bill_city = "";
+						  }
+                          
+                          if(cust_bill_pincode == null || cust_bill_pincode == ""){
+							cust_bill_pincode = "";
+						  }
+                          if(cust_bill_region == null || cust_bill_region == ""){
+							cust_bill_region = "";
+						  }
+                          
+                          if(cust_bill_country == null || cust_bill_country == "")
+							cust_bill_country = "";
+                          else
+							$("#cust_bill_country").html(cust_bill_city+" "+cust_bill_pincode+", "+cust_bill_region+", "+cust_bill_country);
+                          
+                         
+                          if(cust_shipp_firstname == null || cust_shipp_firstname == "")
+                          $("#cust_shipp_name").html(locale.message.text["no_default_shipping_address"]);
+                          else{
+                          if(cust_shipp_lastname==""||cust_shipp_lastname==null){
+                          cust_shipp_lastname="";
+                          $("#cust_shipp_name").html(cust_shipp_firstname+" "+cust_shipp_lastname);
+                          }
+                          else
+                          $("#cust_shipp_name").html(cust_shipp_firstname+" "+cust_shipp_lastname);
+                          }
+                          if(cust_shipp_contact_no == null || cust_shipp_contact_no == "")
+                          $("#cust_shipp_contactno_row").css("display","none");
+                          else
+                          $("#cust_shipp_contact_no").html("Ph "+cust_shipp_contact_no);
+                          if(cust_shipp_company == null || cust_shipp_company == "")
+                          $("#cust_shipp_company_row").css("display","none");
+                          else
+                          $("#cust_shipp_company").html(cust_shipp_company);
+                          if(cust_shipp_street == null || cust_shipp_street == "")
+                          $("#cust_shipp_street_row").css("display","none");
+                          else
+                          $("#cust_shipp_street").html(cust_shipp_street);
+                          
+                          if(cust_shipp_city == null || cust_shipp_city == "")
+							cust_shipp_city = "";
+                          
+                          if(cust_shipp_pincode == null || cust_shipp_pincode == "")
+							cust_shipp_pincode = "";
+                          
+                          if(cust_shipp_region == null || cust_shipp_region == "")
+							cust_shipp_region = "";
+                         
+                          if(cust_shipp_country == null || cust_shipp_country == "")
+							cust_shipp_country = "";
+                          else
+							$("#cust_shipp_country").html(cust_shipp_city+" "+cust_shipp_pincode+", "+cust_shipp_region+", "+cust_shipp_country);
+                          
+                          
+                          $(".ui-loader").hide();
+                          });
+                          $("#profile_tabs").html('<div class="profile_tabs_inner"><input type="button" id="mofluid_myorders_a" data-theme="b" value="'+locale.message.button.my_orders+'" onclick="redirectTopage(\'myorder.html\')"/></div><div class="profile_tabs_inner"><input type="button" id="mofluid_signout_a" data-theme="b" value="'+locale.message.button.sign_out+'" onclick="logOut()"/></div>');
+                          $("#profile_tabs").trigger("create");
+                getFooter();
+            
+            }
+        /*
+         *Function to capitalise first letter
+         *@param
+         *@return
+         */
+        function capitaliseFirstLetter(string){
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+
+        
+function showHideDiv1(id){
+  var obj = document.getElementById(id);
+    if (obj.style.display=="none"){
+      obj.style.display='block';
+    } else if(obj.style.display=="block"){
+      obj.style.display='none';
+    }
+}
+
+function editbilladdress(){
+	var dirPath = dirname(location.href);
+    var fullPath = dirPath + "/editprofile.html?url=billingaddress";
+    window.location=fullPath;
+}
+function editshipaddress(){
+	var dirPath = dirname(location.href);
+    var fullPath = dirPath + "/editprofile.html?url=shippingaddress";
+    window.location=fullPath;
+}
+localStorage.setItem('foo', 0);
+            </script>
+    </head>
+    <body onLoad="onLoad()">
+        <div data-role="page" id="mainpage">
+            
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                <div class="navigation_button">
+                    <a href="#" class="fa fa-angle-left fa" onclick="back_click_new();">
+                    </a>
+                </div>
+                <div class="navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                
+                
+                <div class="navigation_logo" align="center">
+                    <a href="javascript:void(0);">
+                        <img  class="logo_icon" src="images/spin.gif" style="height:30px;width:30px;"/>
+                    </a>
+                </div>
+                
+            
+				
+                <!--<div class="cart_search_container">
+                    <div class="navigation_cart">
+                        <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                            <img  class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                            <div class="cartamount">
+                                <div class="cartNew" id="cartProducts">0</div>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    
+                    <div class="navigation_search">
+                        <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon"></a>
+                    </div>
+                </div>-->
+                
+                
+                
+                <div class="clear"></div>
+                
+            <div id="push-header" style="display:none">
+                   <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: transparent;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                   <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+               </div></div>
+            
+            <div data-role="content">
+                <div class="clear"></div>
+                
+                <div id="searchBox" class="searchbox" style="display:none;">
+                    <form name="serachForm" action="javascript:custom_search();">
+                        <div>
+                            <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                            <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+              
+				
+                <div id="loginbox" class="loginbox myloginbox" >
+                    
+                    <div id="myprofile_content" class="myprofile" style="border:2px solid #e5e5e5;background-color:transparent;">
+                  
+					   <div id="profile_tabs" class="profile_tabs">
+                           
+                       </div>
+					   <div id="default_bill_address"  style="margin-bottom:10px z-index: 100;">
+						   <h3 style="float:left"></h3>
+                           <a class="edit_button" onclick="editbilladdress();" href="javascript:void(0);"></a>
+                           <div class="clear"></div>
+						   <div  id="billing_address">
+							   <div id ="cust_bill_name_row" style="padding:3px;"><span id=cust_bill_name></span></div>
+							   <div id ="cust_bill_company_row" style="padding:3px;"><span id=cust_bill_company></span></div>
+							   <div id ="cust_bill_street_row" style="padding:3px;"><span id=cust_bill_street></span></div>
+							   <div id ="cust_bill_country_row" style="padding:3px;"><span id=cust_bill_country></span></div>
+							   <div id ="cust_bill_contact_row" style="padding:3px;"><span id=cust_bill_contact_no></span></div>
+						   </div>
+					   </div>
+					   <div id="default_shipp_address"  style="margin-bottom:10px z-index: 100;" >
+						   <h3 style="float:left"></h3>
+                            <a class="edit_button" href="javascript:void(0);" onclick="editshipaddress();"></a>
+                            <div class="clear"></div>
+						   <div  id="shipping_address">
+							   <div id ="cust_shipp_name_row" style="padding:3px;"><span id=cust_shipp_name></span></div>
+							   <div id ="cust_shipp_company_row" style="padding:3px;"><span id=cust_shipp_company></span></div>
+							   <div id ="cust_shipp_street_row" style="padding:3px;"><span id=cust_shipp_street></span></div>
+							   <div id ="cust_shipp_country_row" style="padding:3px;"><span id=cust_shipp_country></span></div>
+							   <div id ="cust_shipp_contact_row" style="padding:3px;"><span id=cust_shipp_contact_no></span></div>
+						   </div>
+					   </div>
+
+
+                    </div>
+                    <div class="clear"></div>
+                <div class="changePassword_button" id="changePassword_button" style="margin-top:30px;padding:0px 3.5%">
+                
+                </div>
+
+
+                </div>
+                
+                <div class="clear"></div>
+                
+                
+
+
+            </div>
+            
+            <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+            </div>
+            
+            
+            <nav class="pushy pushy-left">
+                <div id="Cate_slide">
+                </div>
+            </nav>
+            <!-- Site Overlay -->
+            <div class="site-overlay"></div>
+
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+</html>

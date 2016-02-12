@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height"/>
+        <meta name="msapplication-tap-highlight" content="no" />
+        <title>Mofluid</title>
+        <script type="text/javascript" src="js/header.js"></script>
+        <script type="text/javascript">
+            //app.initialize();
+           
+            function onLoad(){
+                checkLoginStatus();
+                getFooter();
+                ScaleContent();
+                
+                
+                checkif_guest();
+            }
+        
+        function checkif_guest(){
+            
+            $.mobile.loading("show");
+            var store_webservice = config.data[0].baseurl + "?callback=?" + "&store=" + config.data[0].storeid + "&service=checkout&currency="+config.data[0].app_currency+"&theme="+config.data[0].theme;
+            $.ajax({
+                url: store_webservice,
+                type: 'GET',
+                contentType: 'application/json',
+                dataType: 'json',
+                async: false,
+                error: function(jqXHR, textStatus, errorThrown) {
+                   $.mobile.loading("hide");
+                   console.log("Cant load homepage webservice data");
+                   console.log(textStatus);
+                   console.log(errorThrown);
+                },
+                success: function(response) {
+                   $.mobile.loading("hide");
+                   var checkout_content='';
+                   if(parseInt(response.checkout)){
+                    checkout_content +='<h2>'+locale.message.text["checkout_header_text"]+'</h2>\
+                       <form action="javascript:submitform();">\
+                       <label for="checkout_guest" id="login_checkout_text">'+locale.message.text["login_checkout_text"]+'</label>\
+                       <input type="radio" id="checkout_guest" name="checkout_guest"/>\
+                       <div class="spacee"></div>\
+                       <label for="checkout_register">'+locale.message.button["create_an_account"]+'</label>\
+                       <input type="radio" id="checkout_register" name="checkout_guest"/>\
+                       <div class="spacee"></div>\
+                       <label for="checkout_login">'+locale.message.button["sign_in"]+'</label>\
+                       <input type="radio" id="checkout_login" name="checkout_guest"/>\
+                       <div class="spacee"></div>\
+                       <div class="login_box6">\
+                       <input type="button"   id="continue_button" value="'+locale.message.button["continue"]+'"  data-theme="c" onclick="checkstatus();">\
+                       </div>\
+                       </form>';
+                   }
+                   else{
+                     checkout_content +='<h2>'+locale.message.text["register_login"]+'</h2>\
+                       <form action="javascript:submitform();">\
+                       <label for="checkout_register">'+locale.message.button["create_an_account"]+'</label>\
+                       <input type="radio" id="checkout_register" name="checkout_guest"/>\
+                       <div class="spacee"></div>\
+                       <label for="checkout_login">'+locale.message.button["sign_in"]+'</label>\
+                       <input type="radio" id="checkout_login" name="checkout_guest"/>\
+                       <div class="spacee"></div>\
+                       <div class="login_box6">\
+                       <input type="button"   id="continue_button" value="'+locale.message.button["continue"]+'"  data-theme="c" onclick="checkstatus();">\
+                       </div>\
+                       </form>';
+                   }
+                   $("#guest_checkoutbox").html(checkout_content);
+                   $("#guest_checkoutbox").trigger("create");
+                }
+            });
+        
+        
+        }
+            function checkstatus(){
+                var checked_ele = "";
+                $("[name=checkout_guest]").each(function(){
+                    if($(this).is(":checked")){
+                        checked_ele = this.id;
+                    }
+                });
+                switch(checked_ele){
+					case "checkout_guest":
+						redirectTopage('buy_now.html');
+                        break;
+					case "checkout_register":
+						localStorage[config.data[0].storage_key+"_nextpage"] = "buy_now.html";
+						redirectTopage('register.html');
+                        break;
+					case "checkout_login":
+						localStorage[config.data[0].storage_key+"_nextpage"] = "buy_now.html";
+						redirectTopage('login.html');
+                        break;
+					default:
+                        if (config.data[0].platform == 'ios' || config.data[0].platform == 'android') {
+                            navigator.notification.alert("Please select one mode.",function() {},config.data[0].app_name,locale.message.button["close"]);
+                        }
+                        else {
+                            alert("Please select one mode.");
+                        }
+				}
+                
+            }
+        
+        function ScaleContent() {
+            var header_ht = $(".ui-header").height() + $(".searchbox").height() +20;
+            var footer_ht = $(".ui-footer").height();
+            var window_ht = $(window).height();
+            $(".content_outer").height(window_ht - header_ht - footer_ht);
+        }
+        
+        localStorage.setItem('foo', 0);
+        </script>
+    </head>
+    <body onLoad="onLoad()">
+        <div data-role="page" id="mainpage" >
+            
+            <div data-role="header" id="mainheader" class="mainheader" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="header">
+                <div class="navigation_button">
+                    <a href="#" class="fa fa-angle-left fa" onclick="back_click_new();">
+                    </a>
+                </div>
+                <div class="navigation_menu_button menu-btn">
+                    <a href="#" class="fa fa-bars fa">
+                        
+                    </a>
+                </div>
+                <div class="navigation_logo" align="center">
+                    <a href="javascript:void(0);">
+                        <img  class="logo_icon" src="images/spin.gif" style="width:30px;height:30px;"/>
+                    </a>
+                </div>
+                
+                <!--<div class="cart_search_container">
+                    <div class="navigation_cart">
+                        <a href="javascript:void(0);" onclick="redirectTopage('cart.html')">
+                            <img  class="cart_icon navigation_icon" src="images/themeicons/cart_32x32.png" onerror="this.onerror=null;this.src='images/cart.png'" />
+                            <div class="cartamount">
+                                <div class="cartNew" id="cartProducts">0</div>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    
+                    <div class="navigation_search">
+                        <a href="javascript:void(0);" id="search_btn"> <img src="images/search.png" class="navigation_icon"></a>
+                    </div>
+                </div>-->
+                
+                <div class="clear"></div>
+               
+                <div id="push-header" style="display:none">
+                    <a href="javascript:hidePush();" style="float: right;margin: 5px 5px 5px 5px;background-color: #e5e5e5;width: 25px;height: 25px;border-radius: 100%;padding: 5px;background-image: url(images/dark/cross.png);background-position: center;background-size: 80% 80%;margin-right:5px;">&nbsp;</a>
+                    <p id='push-msg' style='text-align:justify;font-weight:400;padding:0px 10px;line-height:17px;font-size:14px;width:95%'>&nbsp;</p>
+                </div>
+            </div>
+            
+            <div data-role="content">
+                <div id="searchBox" class="searchbox" style="display:none;">
+                    <form name="serachForm" action="javascript:custom_search();">
+                        <div>
+                            <input id="searchFilter" type="serach" data-type="search" placeholder="" data-theme="a" />
+                            <ul id="suggestions" data-role="listview" data-inset="true" data-theme="a">
+                                
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="content_outer">
+                    <div class="content_inner">
+                        <div id="guest_checkoutbox" class="guest_checkout" align="center">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div data-role="footer" class="footer" data-position="fixed" data-tap-toggle="false" data-transition="none" data-id="footer">
+            </div>
+           
+           <nav class="pushy pushy-left">
+               <div id="Cate_slide">
+               </div>
+           </nav>
+            <!-- Site Overlay -->
+            <div class="site-overlay"></div>
+
+        </div>
+        <script type="text/javascript" src="js/footer.js"></script>
+    </body>
+</html>
